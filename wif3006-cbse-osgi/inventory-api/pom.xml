@@ -23,7 +23,7 @@
                 <configuration>
                     <instructions>
                         <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
-                        <Export-Package>com.inventory.api</Export-Package>
+                        <Export-Package>com.inventory.api.*</Export-Package>
                     </instructions>
                 </configuration>
             </plugin>

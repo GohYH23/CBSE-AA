@@ -1,4 +1,4 @@
-package Customer;
+package com.inventorymanagement.Customer;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

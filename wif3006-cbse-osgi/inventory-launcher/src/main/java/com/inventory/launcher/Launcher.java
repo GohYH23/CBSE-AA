@@ -4,11 +4,12 @@ import org.apache.felix.framework.Felix;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
+
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class Launcher {
     public static void main(String[] args) {
@@ -24,31 +25,57 @@ public class Launcher {
             felix.start();
             BundleContext context = felix.getBundleContext();
 
-            // 3. Define path to your modules
-            // Assuming we run this from the root folder
-            String rootPath = new File(".").getAbsolutePath();
-            List<String> modules = new ArrayList<>();
-            modules.add("/inventory-api/target/inventory-api-1.0.0.jar");
-            modules.add("/customer-bundle/target/customer-bundle-1.0.0.jar");
-            // Add other bundles here...
+            // --- PATH SETUP ---
+            String rootPath = new File(".").getAbsolutePath().replace(".", "");
 
-            // 4. Install & Start Bundles
-            for (String modulePath : modules) {
-                // Remove trailing dot if present in path manipulation
-                String fullPath = "file:" + rootPath.replace("/.", "") + modulePath;
-                try {
-                    Bundle b = context.installBundle(fullPath);
-                    b.start();
-                    System.out.println("   Installed: " + b.getSymbolicName());
-                } catch (Exception e) {
-                    System.err.println("   Failed: " + modulePath + " -> " + e.getMessage());
-                }
+            // 3. Define Bundle Lists
+            List<String> infrastructureBundles = new ArrayList<>();
+            List<String> projectBundles = new ArrayList<>();
+
+            // A. Infrastructure (The "Manager" components)
+            // These are copied here by the maven-dependency-plugin
+            String libDir = "inventory-launcher/target/bundles/";
+
+            // ORDER MATTERS: Function -> Promise -> API -> SCR
+            infrastructureBundles.add(libDir + "org.osgi.util.function-1.2.0.jar");
+            infrastructureBundles.add(libDir + "org.osgi.util.promise-1.2.0.jar");
+            infrastructureBundles.add(libDir + "org.osgi.service.component-1.5.0.jar");
+            infrastructureBundles.add(libDir + "org.apache.felix.scr-2.2.6.jar");
+
+            // B. Project Bundles (Your Code)
+            projectBundles.add("inventory-api/target/inventory-api-1.0.0.jar");
+            projectBundles.add("customer-bundle/target/customer-bundle-1.0.0.jar");
+
+            // 4. Install & Start Infrastructure
+            System.out.println("--- Loading Infrastructure ---");
+            for (String path : infrastructureBundles) {
+                installAndStart(context, rootPath, path);
+            }
+
+            // 5. Install & Start Modules
+            System.out.println("--- Loading Modules ---");
+            for (String path : projectBundles) {
+                installAndStart(context, rootPath, path);
             }
 
             // Keep running
             felix.waitForStop(0);
         } catch (Exception ex) {
             ex.printStackTrace();
+        }
+    }
+
+    private static void installAndStart(BundleContext context, String rootPath, String relativePath) {
+        File f = new File(relativePath);
+        String fullPath = "file:" + f.getAbsolutePath();
+
+        try {
+            Bundle b = context.installBundle(fullPath);
+            b.start();
+            System.out.println("   ✅ Installed & Started: " + b.getSymbolicName());
+        } catch (Exception e) {
+            System.err.println("   ❌ Failed to load: " + relativePath);
+            System.err.println("      Error: " + e.getMessage());
         }
     }
 }

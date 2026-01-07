@@ -1,6 +1,8 @@
 package com.inventory.api.customer;
 
+import java.util.List;
+
 public interface CustomerService {
     void addCustomer(String name);
-    String getCustomerDetails(int id);
+    List<String> getAllCustomers();
 }

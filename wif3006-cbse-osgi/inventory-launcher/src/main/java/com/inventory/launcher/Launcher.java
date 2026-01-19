@@ -10,11 +10,35 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
+import java.io.InputStream;
+import java.io.IOException;
 
 public class Launcher {
     public static void main(String[] args) {
         try {
             System.out.println("🚀 Starting Pure OSGi Inventory System...");
+
+            try (InputStream input = Launcher.class.getClassLoader().getResourceAsStream("osgi.properties")) {
+                if (input == null) {
+                    System.out.println("⚠️ Warning: osgi.properties not found!");
+                } else {
+                    Properties prop = new Properties();
+                    prop.load(input);
+
+                    // 1. Get the URI from the file
+                    String uri = prop.getProperty("mongodb.uri");
+
+                    // 2. Save it to the System (Global Variable)
+                    // Now ANY bundle can read this using System.getProperty()
+                    if (uri != null) {
+                        System.setProperty("mongodb.uri", uri);
+                        System.out.println("📝 Configuration Loaded: MongoDB URI set.");
+                    }
+                }
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
 
             // 1. Configure Framework
             Map<String, String> config = new HashMap<>();
@@ -65,6 +89,7 @@ public class Launcher {
             projectBundles.add(rootPath + "inventory-api/target/inventory-api-1.0.0.jar");
             projectBundles.add(rootPath + "customer-bundle/target/customer-bundle-1.0.0.jar");
             projectBundles.add(rootPath + "purchase-order-bundle/target/purchase-order-bundle-1.0.0.jar");
+            projectBundles.add(rootPath + "sales-order-bundle/target/sales-order-bundle-1.0.0.jar");
 
             // 4. Install & Start Infrastructure
             System.out.println("--- Loading Infrastructure ---");

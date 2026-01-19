@@ -19,6 +19,7 @@
         <module>inventory-api</module>
         <module>customer-bundle</module>
         <module>purchase-order-bundle</module>
+        <module>sales-order-bundle</module>
         <module>inventory-launcher</module>
     </modules>
 

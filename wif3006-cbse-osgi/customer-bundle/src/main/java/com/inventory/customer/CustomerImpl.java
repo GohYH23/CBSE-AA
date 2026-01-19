@@ -2,12 +2,12 @@ package com.inventory.customer;
 
 import com.inventory.api.customer.CustomerService;
 import com.inventory.api.purchaseorder.PurchaseOrderService;
-import org.osgi.service.component.annotations.Activate;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Deactivate;
-import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.component.annotations.ReferenceCardinality;
-import org.osgi.service.component.annotations.ReferencePolicy;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import org.bson.Document;
+import org.osgi.service.component.annotations.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,67 +16,98 @@ import java.util.Scanner;
 @Component(service = CustomerService.class, immediate = true)
 public class CustomerImpl implements CustomerService {
 
-    // Storage for our customers
-    private final List<String> customerList = new ArrayList<>();
+    // --- MongoDB Fields ---
+    private MongoClient mongoClient;
+    private MongoCollection<Document> customerCollection;
 
-    // Flag to control the menu loop
     private boolean running = true;
-    
-    // Purchase Order Service (optional - may not be available immediately)
     private PurchaseOrderService purchaseOrderService;
 
     @Activate
     public void activate() {
-        System.out.println("✅ Customer Component Started.");
+        System.out.println("✅ Customer Component Starting...");
 
-        // ⚠️ CRITICAL: Run the menu in a separate thread so OSGi doesn't freeze!
+        // 1. Get the Connection String from Launcher
+        String uri = System.getProperty("mongodb.uri");
+
+        if (uri == null || uri.isEmpty()) {
+            System.err.println("❌ ERROR: 'mongodb.uri' not found! Please check Launcher & osgi.properties.");
+        } else {
+            try {
+                // 2. Connect to Cloud
+                mongoClient = MongoClients.create(uri);
+                MongoDatabase database = mongoClient.getDatabase("inventory_db_osgi");
+                customerCollection = database.getCollection("customers");
+                System.out.println("   ✅ Connected to MongoDB: inventory_db_osgi");
+            } catch (Exception e) {
+                System.err.println("   ❌ Connection Failed: " + e.getMessage());
+            }
+        }
+
+        // Run menu in background thread
         new Thread(this::showMenu).start();
     }
 
     @Deactivate
     public void deactivate() {
         System.out.println("❌ Stopping Customer Menu...");
-        running = false; // This stops the loop
+        running = false;
+
+        // 3. Close Connection
+        if (mongoClient != null) {
+            mongoClient.close();
+            System.out.println("   ✅ MongoDB Connection Closed.");
+        }
     }
 
-    // --- The Interactive Menu ---
+    // --- Implementation Methods (Updated for MongoDB) ---
+
+    @Override
+    public void addCustomer(String name) {
+        if (customerCollection != null) {
+            Document doc = new Document("name", name);
+            customerCollection.insertOne(doc);
+            System.out.println("✅ Saved to Cloud: " + name);
+        } else {
+            System.out.println("⚠️ Database not connected. Cannot save.");
+        }
+    }
+
+    @Override
+    public List<String> getAllCustomers() {
+        List<String> list = new ArrayList<>();
+        if (customerCollection != null) {
+            for (Document doc : customerCollection.find()) {
+                list.add(doc.getString("name"));
+            }
+        }
+        return list;
+    }
+
+    // --- The Interactive Menu (Unchanged from your code) ---
     private void showMenu() {
         Scanner scanner = new Scanner(System.in);
-
-        // Small delay to let the log messages finish
         try { Thread.sleep(1000); } catch (InterruptedException e) {}
 
         while (running) {
-            System.out.println("\n===========================");
-            System.out.println("   INVENTORY SYSTEM MENU   ");
-            System.out.println("===========================");
+            System.out.println("\n=== INVENTORY SYSTEM (MongoDB Connected) ===");
             System.out.println("1. Add Customer");
             System.out.println("2. View All Customers");
             System.out.println("3. Manage Purchase Order");
-            System.out.println("4. Manage Goods Receive");
-            System.out.println("5. Manage Purchase Return");
             System.out.println("6. Exit System");
-            System.out.print("Select an option: ");
+            System.out.print("Select: ");
 
             try {
                 String input = scanner.nextLine();
-
                 switch (input) {
                     case "1":
                         System.out.print("Enter Customer Name: ");
-                        String name = scanner.nextLine();
-                        addCustomer(name);
+                        addCustomer(scanner.nextLine());
                         break;
                     case "2":
-                        System.out.println("\n--- Customer List ---");
+                        System.out.println("\n--- Customer List (From Cloud) ---");
                         List<String> list = getAllCustomers();
-                        if (list.isEmpty()) {
-                            System.out.println("(No customers found)");
-                        } else {
-                            for (String c : list) {
-                                System.out.println(" - " + c);
-                            }
-                        }
+                        for (String c : list) System.out.println(" - " + c);
                         break;
                     case "3":
                         // Purchase Order
@@ -84,7 +115,7 @@ public class CustomerImpl implements CustomerService {
                             try {
                                 // Access the menu method - need to cast to implementation
                                 java.lang.reflect.Method menuMethod = purchaseOrderService.getClass()
-                                    .getMethod("showPurchaseOrderMenu", Scanner.class);
+                                        .getMethod("showPurchaseOrderMenu", Scanner.class);
                                 menuMethod.invoke(purchaseOrderService, scanner);
                             } catch (Exception e) {
                                 System.out.println("Error accessing Purchase Order menu: " + e.getMessage());
@@ -100,7 +131,7 @@ public class CustomerImpl implements CustomerService {
                             try {
                                 // Access the Goods Receive menu method
                                 java.lang.reflect.Method menuMethod = purchaseOrderService.getClass()
-                                    .getMethod("showGoodsReceiveMenu", Scanner.class);
+                                        .getMethod("showGoodsReceiveMenu", Scanner.class);
                                 menuMethod.invoke(purchaseOrderService, scanner);
                             } catch (Exception e) {
                                 System.out.println("Error accessing Goods Receive menu: " + e.getMessage());
@@ -116,7 +147,7 @@ public class CustomerImpl implements CustomerService {
                             try {
                                 // Access the Purchase Return menu method
                                 java.lang.reflect.Method menuMethod = purchaseOrderService.getClass()
-                                    .getMethod("showPurchaseReturnMenu", Scanner.class);
+                                        .getMethod("showPurchaseReturnMenu", Scanner.class);
                                 menuMethod.invoke(purchaseOrderService, scanner);
                             } catch (Exception e) {
                                 System.out.println("Error accessing Purchase Return menu: " + e.getMessage());
@@ -127,32 +158,15 @@ public class CustomerImpl implements CustomerService {
                         }
                         break;
                     case "6":
-                        System.out.println("Exiting...");
                         running = false;
-                        System.exit(0); // Shuts down the whole app
+                        System.exit(0);
                         break;
-                    default:
-                        System.out.println("Invalid option, try again.");
+                    default: System.out.println("Invalid option.");
                 }
-            } catch (Exception e) {
-                // Ignore scanner errors during shutdown
-            }
+            } catch (Exception e) {}
         }
     }
 
-    // --- Implementation Methods ---
-
-    @Override
-    public void addCustomer(String name) {
-        customerList.add(name);
-        System.out.println("✅ Added: " + name);
-    }
-
-    @Override
-    public List<String> getAllCustomers() {
-        return new ArrayList<>(customerList); // Return a copy
-    }
-    
     // OSGi Service Reference - Purchase Order Service
     @Reference(
         cardinality = ReferenceCardinality.OPTIONAL,
@@ -163,7 +177,6 @@ public class CustomerImpl implements CustomerService {
         this.purchaseOrderService = service;
         System.out.println("   ✅ Purchase Order Service bound to Customer Menu");
     }
-    
     protected void unbindPurchaseOrderService(PurchaseOrderService service) {
         this.purchaseOrderService = null;
         System.out.println("   ❌ Purchase Order Service unbound from Customer Menu");

@@ -1,21 +1,21 @@
 package com.inventorymanagement;
 
-import com.inventorymanagement.customer.Customer;
-import com.inventorymanagement.customer.CustomerRepository;
+import com.inventorymanagement.customer_gohyuheng.CustomerMenu;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.data.mongodb.config.EnableMongoAuditing;
 
-import java.util.List;
 import java.util.Scanner;
 
 @SpringBootApplication
-
+@EnableMongoAuditing
 public class InventoryManagementApplication implements CommandLineRunner {
 
+    // Inject your new menu class
     @Autowired
-    private CustomerRepository customerRepository;
+    private CustomerMenu customerMenu;
 
     public static void main(String[] args) {
         SpringApplication.run(InventoryManagementApplication.class, args);
@@ -27,59 +27,45 @@ public class InventoryManagementApplication implements CommandLineRunner {
         boolean running = true;
 
         System.out.println("==========================================");
-        System.out.println("   INVENTORY MANAGEMENT (TERMINAL MODE)   ");
+        System.out.println("   INVENTORY MANAGEMENT SYSTEM (V2.0)     ");
         System.out.println("==========================================");
 
         while (running) {
-            System.out.println("\nSelect an option:");
-            System.out.println("1. View All Customers");
-            System.out.println("2. Add New Customer");
-            System.out.println("3. Exit");
-            System.out.print("Enter choice: ");
+            System.out.println("\n--- MAIN MENU ---");
+            System.out.println("1. Customer Module");
+            System.out.println("2. Purchase Module");
+            System.out.println("3. Sale Module");
+            System.out.println("4. Product Module");
+            System.out.println("5. Vendor Module");
+            System.out.println("6. Exit");
+            System.out.print("Select Module: ");
 
             String choice = scanner.nextLine();
 
             switch (choice) {
                 case "1":
-                    viewCustomers();
+                    // Jump to your new Customer Menu File
+                    customerMenu.start(scanner);
                     break;
                 case "2":
-                    addCustomer(scanner);
+                    System.out.println("This module is not ready yet.");
                     break;
                 case "3":
-                    running = false;
+                    System.out.println("This module is not ready yet.");
+                    break;
+                case "4":
+                    System.out.println("This module is not ready yet.");
+                    break;
+                case "5":
+                    System.out.println("This module is not ready yet.");
+                    break;
+                case "6":
                     System.out.println("Exiting system...");
+                    System.exit(0); // Fully stops the program as now got added we dependency (latyer try postman)
                     break;
                 default:
-                    System.out.println("Invalid option. Try again.");
+                    System.out.println("Invalid option. Please try again.");
             }
         }
-    }
-
-    private void viewCustomers() {
-        List<Customer> customers = customerRepository.findAll();
-        if (customers.isEmpty()) {
-            System.out.println("\n[!] No customers found in database.");
-        } else {
-            System.out.println("\n--- Customer List ---");
-            for (Customer c : customers) {
-                System.out.println(c);
-            }
-        }
-    }
-
-    private void addCustomer(Scanner scanner) {
-        System.out.print("Enter Name: ");
-        String name = scanner.nextLine();
-
-        System.out.print("Enter Email: ");
-        String email = scanner.nextLine();
-
-        System.out.print("Enter Category (VIP/Regular): ");
-        String category = scanner.nextLine();
-
-        Customer newCustomer = new Customer(name, email, category);
-        customerRepository.save(newCustomer);
-        System.out.println("✅ Success! Customer saved to MongoDB.");
     }
 }

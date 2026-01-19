@@ -2,6 +2,7 @@ package com.inventory.customer;
 
 import com.inventory.api.customer.CustomerService;
 import com.inventory.api.purchaseorder.PurchaseOrderService;
+import com.inventory.api.salesorder.SalesOrderService;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
@@ -22,6 +23,7 @@ public class CustomerImpl implements CustomerService {
 
     private boolean running = true;
     private PurchaseOrderService purchaseOrderService;
+    private SalesOrderService salesOrderService;
 
     @Activate
     public void activate() {
@@ -94,7 +96,12 @@ public class CustomerImpl implements CustomerService {
             System.out.println("1. Add Customer");
             System.out.println("2. View All Customers");
             System.out.println("3. Manage Purchase Order");
-            System.out.println("6. Exit System");
+            System.out.println("4. Manage Goods Receive");
+            System.out.println("5. Manage Purchase Return");
+            System.out.println("6. Manage Sales Order");     
+            System.out.println("7. Manage Delivery Order");  
+            System.out.println("8. Manage Sales Return");    
+            System.out.println("9. Exit System");
             System.out.print("Select: ");
 
             try {
@@ -158,10 +165,54 @@ public class CustomerImpl implements CustomerService {
                         }
                         break;
                     case "6":
+                        // Sales Order
+                        if (salesOrderService != null) {
+                            try {
+                                java.lang.reflect.Method menuMethod = salesOrderService.getClass()
+                                    .getMethod("showSalesOrderMenu", Scanner.class);
+                                menuMethod.invoke(salesOrderService, scanner);
+                            } catch (Exception e) {
+                                System.out.println("Error accessing Sales Order menu: " + e.getMessage());
+                            }
+                        } else {
+                            System.out.println("Sales Order service is not available yet.");
+                        }
+                        break;
+                    case "7":
+                        // Delivery Order
+                        if (salesOrderService != null) {
+                            try {
+                                java.lang.reflect.Method menuMethod = salesOrderService.getClass()
+                                    .getMethod("showDeliveryOrderMenu", Scanner.class);
+                                menuMethod.invoke(salesOrderService, scanner);
+                            } catch (Exception e) {
+                                System.out.println("Error accessing Delivery Order menu: " + e.getMessage());
+                            }
+                        } else {
+                            System.out.println("Sales Order service is not available yet.");
+                        }
+                        break;
+                    case "8":
+                        // Sales Return
+                        if (salesOrderService != null) {
+                            try {
+                                java.lang.reflect.Method menuMethod = salesOrderService.getClass()
+                                    .getMethod("showSalesReturnMenu", Scanner.class);
+                                menuMethod.invoke(salesOrderService, scanner);
+                            } catch (Exception e) {
+                                System.out.println("Error accessing Sales Return menu: " + e.getMessage());
+                            }
+                        } else {
+                            System.out.println("Sales Order service is not available yet.");
+                        }
+                        break;
+                    case "9":
+                        System.out.println("Exiting...");
                         running = false;
                         System.exit(0);
                         break;
-                    default: System.out.println("Invalid option.");
+                    default:
+                        System.out.println("Invalid option, try again.");
                 }
             } catch (Exception e) {}
         }
@@ -180,5 +231,17 @@ public class CustomerImpl implements CustomerService {
     protected void unbindPurchaseOrderService(PurchaseOrderService service) {
         this.purchaseOrderService = null;
         System.out.println("   ❌ Purchase Order Service unbound from Customer Menu");
+    }
+
+    // --- Added Sales Service Binding ---
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC, unbind = "unbindSalesOrderService")
+    protected void bindSalesOrderService(SalesOrderService service) {
+        this.salesOrderService = service;
+        System.out.println("   ✅ Sales Order Service bound to Customer Menu");
+    }
+    
+    protected void unbindSalesOrderService(SalesOrderService service) {
+        this.salesOrderService = null;
+        System.out.println("   ❌ Sales Order Service unbound from Customer Menu");
     }
 }

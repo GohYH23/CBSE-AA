@@ -26,7 +26,26 @@ public class Launcher {
             BundleContext context = felix.getBundleContext();
 
             // --- PATH SETUP ---
-            String rootPath = new File(".").getAbsolutePath().replace(".", "");
+            // Determine the project root directory
+            // If running from inventory-launcher/target, go up two levels
+            // If running from wif3006-cbse-osgi, use current directory
+            File currentDir = new File(".").getAbsoluteFile();
+            String rootPath;
+            
+            // Check if we're in the target directory
+            if (currentDir.getName().equals("target") && currentDir.getParentFile().getName().equals("inventory-launcher")) {
+                // We're in inventory-launcher/target, go up to project root
+                rootPath = currentDir.getParentFile().getParentFile().getAbsolutePath();
+            } else {
+                // We're in project root
+                rootPath = currentDir.getAbsolutePath();
+            }
+            
+            // Ensure path uses forward slashes (or use File.separator)
+            rootPath = rootPath.replace("\\", "/");
+            if (!rootPath.endsWith("/")) {
+                rootPath += "/";
+            }
 
             // 3. Define Bundle Lists
             List<String> infrastructureBundles = new ArrayList<>();
@@ -34,7 +53,7 @@ public class Launcher {
 
             // A. Infrastructure (The "Manager" components)
             // These are copied here by the maven-dependency-plugin
-            String libDir = "inventory-launcher/target/bundles/";
+            String libDir = rootPath + "inventory-launcher/target/bundles/";
 
             // ORDER MATTERS: Function -> Promise -> API -> SCR
             infrastructureBundles.add(libDir + "org.osgi.util.function-1.2.0.jar");
@@ -43,8 +62,9 @@ public class Launcher {
             infrastructureBundles.add(libDir + "org.apache.felix.scr-2.2.6.jar");
 
             // B. Project Bundles (Your Code)
-            projectBundles.add("inventory-api/target/inventory-api-1.0.0.jar");
-            projectBundles.add("customer-bundle/target/customer-bundle-1.0.0.jar");
+            projectBundles.add(rootPath + "inventory-api/target/inventory-api-1.0.0.jar");
+            projectBundles.add(rootPath + "customer-bundle/target/customer-bundle-1.0.0.jar");
+            projectBundles.add(rootPath + "purchase-order-bundle/target/purchase-order-bundle-1.0.0.jar");
 
             // 4. Install & Start Infrastructure
             System.out.println("--- Loading Infrastructure ---");
@@ -65,8 +85,15 @@ public class Launcher {
         }
     }
 
-    private static void installAndStart(BundleContext context, String rootPath, String relativePath) {
-        File f = new File(relativePath);
+    private static void installAndStart(BundleContext context, String rootPath, String bundlePath) {
+        // bundlePath is already an absolute path from rootPath
+        File f = new File(bundlePath);
+        
+        if (!f.exists()) {
+            System.err.println("   ❌ Bundle file not found: " + bundlePath);
+            return;
+        }
+        
         String fullPath = "file:" + f.getAbsolutePath();
 
         try {
@@ -74,8 +101,9 @@ public class Launcher {
             b.start();
             System.out.println("   ✅ Installed & Started: " + b.getSymbolicName());
         } catch (Exception e) {
-            System.err.println("   ❌ Failed to load: " + relativePath);
+            System.err.println("   ❌ Failed to load: " + bundlePath);
             System.err.println("      Error: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }

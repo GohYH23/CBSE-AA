@@ -18,6 +18,7 @@
 <!--        <module>osgi-runner</module>-->
         <module>inventory-api</module>
         <module>customer-bundle</module>
+        <module>purchase-order-bundle</module>
         <module>inventory-launcher</module>
     </modules>
 

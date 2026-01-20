@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
-         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.inventory.osgi</groupId>
@@ -26,6 +25,12 @@
             <version>1.5.0</version>
             <scope>provided</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongodb-driver-sync</artifactId>
+            <version>4.11.1</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -40,7 +45,17 @@
                         <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
                         <_dsannotations>*</_dsannotations>
                         <Export-Package>com.inventory.salesorder</Export-Package>
-                        <Import-Package>*</Import-Package>
+
+                        <Import-Package>
+                            !com.mongodb.*,
+                            !org.bson.*,
+                            !javax.annotation.*,
+                            !sun.nio.ch,
+                             *
+                        </Import-Package>
+
+                        <Embed-Dependency>mongodb-driver-sync,mongodb-driver-core,bson</Embed-Dependency>
+                        <Embed-Transitive>true</Embed-Transitive>
                     </instructions>
                 </configuration>
             </plugin>

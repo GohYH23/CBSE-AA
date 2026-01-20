@@ -35,6 +35,14 @@ public class CustomerService {
         return customerRepo.findByName(name);
     }
 
+    public Optional<Customer> getCustomerById(String id) {
+        return customerRepo.findById(id);
+    }
+
+    public Customer updateCustomer(Customer customer) {
+        return customerRepo.save(customer);
+    }
+
     public void deleteCustomer(String id) {
         customerRepo.deleteById(id);
         List<CustomerContact> contacts = contactRepo.findByCustomerId(id);
@@ -46,6 +54,10 @@ public class CustomerService {
         return groupRepo.save(group);
     }
 
+    public Optional<CustomerGroup> getGroupById(String id) {
+        return groupRepo.findById(id);
+    }
+
     public List<CustomerGroup> getAllGroups() {
         return groupRepo.findAll();
     }
@@ -54,8 +66,17 @@ public class CustomerService {
         return groupRepo.findByGroupName(name);
     }
 
-    public void deleteGroup(String id) {
+    public CustomerGroup updateGroup(CustomerGroup group) {
+        return groupRepo.save(group);
+    }
+
+    public String deleteGroup(String id) {
+        List<Customer> linked = customerRepo.findByCustomerGroupId(id);
+        if (!linked.isEmpty()) {
+            return "❌ Cannot delete: " + linked.size() + " customer(s) are currently assigned to this group.";
+        }
         groupRepo.deleteById(id);
+        return "✅ Group deleted successfully.";
     }
 
     // --- Category Logic ---
@@ -63,12 +84,25 @@ public class CustomerService {
         return categoryRepo.save(category);
     }
 
+    public Optional<CustomerCategory> getCategoryById(String id) {
+        return categoryRepo.findById(id);
+    }
+
     public List<CustomerCategory> getAllCategories() {
         return categoryRepo.findAll();
     }
 
-    public void deleteCategory(String id) {
+    public CustomerCategory updateCategory(CustomerCategory category) {
+        return categoryRepo.save(category);
+    }
+
+    public String deleteCategory(String id) {
+        List<Customer> linked = customerRepo.findByCustomerCategoryId(id);
+        if (!linked.isEmpty()) {
+            return "❌ Cannot delete: " + linked.size() + " customer(s) are currently assigned to this category.";
+        }
         categoryRepo.deleteById(id);
+        return "✅ Category deleted successfully.";
     }
 
     public Optional<CustomerCategory> getCategoryByName(String name) {
@@ -76,6 +110,10 @@ public class CustomerService {
     }
 
     // --- Contact Logic ---
+    public List<CustomerContact> getAllContacts() {
+        return contactRepo.findAll();
+    }
+
     public CustomerContact addContact(String customerId, CustomerContact contact) {
         contact.setCustomerId(customerId); // Link it automatically
         return contactRepo.save(contact);
@@ -83,6 +121,10 @@ public class CustomerService {
 
     public List<CustomerContact> getContactsByCustomerId(String customerId) {
         return contactRepo.findByCustomerId(customerId);
+    }
+
+    public CustomerContact updateContact(CustomerContact contact) {
+        return contactRepo.save(contact);
     }
 
     public void deleteContact(String id) {

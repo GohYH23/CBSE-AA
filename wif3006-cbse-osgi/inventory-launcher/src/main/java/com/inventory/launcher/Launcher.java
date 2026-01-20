@@ -92,8 +92,9 @@ public class Launcher {
             projectBundles.add(rootPath + "inventory-api/target/inventory-api-1.0.0.jar");
             projectBundles.add(rootPath + "main-bundle/target/main-menu-bundle-1.0.0.jar");
             projectBundles.add(rootPath + "customer-bundle/target/customer-bundle-1.0.0.jar");
-//            projectBundles.add(rootPath + "purchase-order-bundle/target/purchase-order-bundle-1.0.0.jar");
-//            projectBundles.add(rootPath + "sales-order-bundle/target/sales-order-bundle-1.0.0.jar");
+            projectBundles.add(rootPath + "purchase-order-bundle/target/purchase-order-bundle-1.0.0.jar");
+            projectBundles.add(rootPath + "sales-order-bundle/target/sales-order-bundle-1.0.0.jar");
+            projectBundles.add(rootPath + "product-bundle/target/product-bundle-1.0.0.jar");
 
             // 4. Install & Start Infrastructure
             System.out.println("--- Loading Infrastructure ---");

@@ -1,110 +1,185 @@
 package com.inventory.product;
 
-import com.inventory.api.product.Product;
-import com.inventory.api.product.ProductService;
+import com.inventory.api.product.*;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import org.bson.Document;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
 
-import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @Component(service = ProductService.class, immediate = true)
 public class ProductServiceImpl implements ProductService {
 
-    private static final String DATA_DIR = "data";
-    private static final String DATA_FILE = "products.dat";
-
-    private final List<Product> productList = new ArrayList<>();
-    // Locks prevent data corruption if two people access it at the same time
-    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-    private File dataFile;
+    private MongoClient mongoClient;
+    private MongoDatabase database;
 
     @Activate
     public void activate() {
-        System.out.println("✅ Product Module Started.");
-
-        // 1. Setup Data Storage
-        try {
-            Path dataDirPath = Paths.get(DATA_DIR);
-            if (!Files.exists(dataDirPath)) {
-                Files.createDirectories(dataDirPath);
+        String uri = System.getProperty("mongodb.uri");
+        if (uri != null) {
+            try {
+                mongoClient = MongoClients.create(uri);
+                database = mongoClient.getDatabase("inventory_db_osgi");
+                System.out.println("✅ Product Module Connected to MongoDB!");
+            } catch (Exception e) {
+                System.err.println("❌ MongoDB Connection Failed: " + e.getMessage());
             }
-            dataFile = new File(DATA_DIR, DATA_FILE);
-
-            // 2. Load existing data
-            loadProducts();
-            System.out.println("   Loaded " + productList.size() + " products from storage.");
-
-        } catch (Exception e) {
-            System.err.println("   ⚠️ Warning: Could not initialize data storage: " + e.getMessage());
         }
     }
 
     @Deactivate
     public void deactivate() {
-        System.out.println("❌ Stopping Product Module...");
-        saveProducts(); // Save before quitting
+        if (mongoClient != null) mongoClient.close();
     }
 
+    // --- Helper to get collection safely ---
+    private MongoCollection<Document> getCollection(String name) {
+        if (database == null) return null;
+        return database.getCollection(name);
+    }
+
+    // --- UC-09: Product ---
     @Override
-    public void addProduct(Product product) {
-        lock.writeLock().lock(); // Lock for writing
-        try {
-            productList.add(product);
-            saveProducts(); // Auto-save
-            System.out.println("OSGi: Product added - " + product.getName());
-        } finally {
-            lock.writeLock().unlock();
+    public void addProduct(Product p) {
+        MongoCollection<Document> col = getCollection("products");
+        if (col != null) {
+            Document doc = new Document("id", p.getId())
+                    .append("name", p.getName())
+                    .append("price", p.getPrice());
+            col.insertOne(doc);
         }
     }
 
     @Override
     public List<Product> getAllProducts() {
-        lock.readLock().lock(); // Lock for reading
-        try {
-            return new ArrayList<>(productList); // Return a copy to be safe
-        } finally {
-            lock.readLock().unlock();
+        List<Product> list = new ArrayList<>();
+        MongoCollection<Document> col = getCollection("products");
+        if (col != null) {
+            for (Document doc : col.find()) {
+                Product p = new Product();
+                p.setId(doc.getString("id"));
+                p.setName(doc.getString("name"));
+                if (doc.get("price") instanceof Double) p.setPrice(doc.getDouble("price"));
+                list.add(p);
+            }
+        }
+        return list;
+    }
+
+    @Override
+    public void deleteProduct(String id) {
+        MongoCollection<Document> col = getCollection("products");
+        if (col != null) {
+            col.deleteOne(new Document("id", id));
+            System.out.println("Deleted Product: " + id);
         }
     }
 
-    // --- The Menu Connection (Crucial for the Launcher) ---
-    // Make sure your Interface (ProductService) has: void showMenu(Scanner scanner);
+    // --- UC-10: Product Group ---
+    @Override
+    public void addProductGroup(ProductGroup g) {
+        MongoCollection<Document> col = getCollection("product_groups");
+        if (col != null) {
+            col.insertOne(new Document("id", g.getGroupId())
+                    .append("name", g.getGroupName())
+                    .append("desc", g.getDescription()));
+        }
+    }
+
+    @Override
+    public List<ProductGroup> getAllProductGroups() {
+        List<ProductGroup> list = new ArrayList<>();
+        MongoCollection<Document> col = getCollection("product_groups");
+        if (col != null) {
+            for (Document d : col.find()) {
+                list.add(new ProductGroup(d.getString("id"), d.getString("name"), d.getString("desc")));
+            }
+        }
+        return list;
+    }
+
+    // --- UC-11: Unit Measure ---
+    @Override
+    public void addUnitMeasure(UnitMeasure u) {
+        MongoCollection<Document> col = getCollection("unit_measures");
+        if (col != null) {
+            col.insertOne(new Document("id", u.getUomId())
+                    .append("name", u.getUnitName())
+                    .append("symbol", u.getSymbol()));
+        }
+    }
+
+    @Override
+    public List<UnitMeasure> getAllUnitMeasures() {
+        List<UnitMeasure> list = new ArrayList<>();
+        MongoCollection<Document> col = getCollection("unit_measures");
+        if (col != null) {
+            for (Document d : col.find()) {
+                list.add(new UnitMeasure(d.getString("id"), d.getString("name"), d.getString("symbol")));
+            }
+        }
+        return list;
+    }
+
+    // --- UC-13: Warehouse ---
+    @Override
+    public void addWarehouse(Warehouse w) {
+        MongoCollection<Document> col = getCollection("warehouses");
+        if (col != null) {
+            col.insertOne(new Document("name", w.getName())
+                    .append("isSystem", w.isSystemWarehouse())
+                    .append("desc", w.getDescription()));
+        }
+    }
+
+    @Override
+    public List<Warehouse> getAllWarehouses() {
+        List<Warehouse> list = new ArrayList<>();
+        MongoCollection<Document> col = getCollection("warehouses");
+        if (col != null) {
+            for (Document d : col.find()) {
+                list.add(new Warehouse(d.getString("name"),
+                        d.getBoolean("isSystem", false),
+                        d.getString("desc")));
+            }
+        }
+        return list;
+    }
+
+    // --- UC-12: Stock Count ---
+    @Override
+    public void addStockCount(StockCount s) {
+        MongoCollection<Document> col = getCollection("stock_counts");
+        if (col != null) {
+            col.insertOne(new Document("id", s.getCountId())
+                    .append("warehouse", s.getWarehouseName())
+                    .append("status", s.getStatus())
+                    .append("date", s.getDate()));
+        }
+    }
+
+    @Override
+    public List<StockCount> getAllStockCounts() {
+        List<StockCount> list = new ArrayList<>();
+        MongoCollection<Document> col = getCollection("stock_counts");
+        if (col != null) {
+            for (Document d : col.find()) {
+                list.add(new StockCount(d.getString("id"), d.getString("warehouse"),
+                        d.getString("status"), d.getString("date")));
+            }
+        }
+        return list;
+    }
+
     @Override
     public void showMenu(Scanner scanner) {
-        ProductMenu menu = new ProductMenu(this, scanner);
-        menu.showMenu();
-    }
-
-    // --- Persistence Helper Methods (Like your friend's code) ---
-    private void saveProducts() {
-        if (dataFile == null) return;
-        try (ObjectOutputStream oos = new ObjectOutputStream(
-                new BufferedOutputStream(new FileOutputStream(dataFile)))) {
-            oos.writeObject(productList);
-            oos.flush();
-        } catch (IOException e) {
-            System.err.println("   ⚠️ Error saving products: " + e.getMessage());
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private void loadProducts() {
-        if (dataFile == null || !dataFile.exists()) return;
-        try (ObjectInputStream ois = new ObjectInputStream(
-                new BufferedInputStream(new FileInputStream(dataFile)))) {
-            List<Product> loaded = (List<Product>) ois.readObject();
-            productList.clear();
-            productList.addAll(loaded);
-        } catch (IOException | ClassNotFoundException e) {
-            System.err.println("   ⚠️ Error loading products: " + e.getMessage());
-        }
+        // Handled by ProductMenu.java
     }
 }

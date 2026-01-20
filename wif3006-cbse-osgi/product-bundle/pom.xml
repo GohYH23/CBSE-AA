@@ -32,6 +32,13 @@
             <version>1.5.0</version>
             <scope>provided</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongo-java-driver</artifactId>
+            <version>3.12.11</version>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -46,7 +53,15 @@
                         <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
                         <_dsannotations>*</_dsannotations>
                         <Export-Package>com.inventory.product</Export-Package>
-                        <Import-Package>*</Import-Package>
+
+                        <Embed-Dependency>mongo-java-driver</Embed-Dependency>
+
+                        <Import-Package>
+                            !com.mongodb.crypt.capi,
+                            !org.ietf.jgss,
+                            !javax.xml.bind,       !javax.annotation.*,
+                            *
+                        </Import-Package>
                     </instructions>
                 </configuration>
             </plugin>

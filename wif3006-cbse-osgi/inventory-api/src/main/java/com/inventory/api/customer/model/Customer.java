@@ -11,9 +11,11 @@ public class Customer implements Serializable {
     private String address;
     private String customerGroupId;
     private String customerCategoryId;
-    private String createdDate;
+    private String createdAt;
+    private String editedAt;
 
     public Customer() {
+        this.createdAt = LocalDateTime.now().toString();
     }
 
     public Customer(String name, String email, String phoneNumber, String address, String customerGroupId, String customerCategoryId) {
@@ -23,7 +25,7 @@ public class Customer implements Serializable {
         this.address = address;
         this.customerGroupId = customerGroupId;
         this.customerCategoryId = customerCategoryId;
-        this.createdDate = LocalDateTime.now().toString(); // Auto-set date
+        this.createdAt = LocalDateTime.now().toString();
     }
 
     // --- Getters and Setters ---
@@ -48,8 +50,11 @@ public class Customer implements Serializable {
     public String getCustomerCategoryId() { return customerCategoryId; }
     public void setCustomerCategoryId(String customerCategoryId) { this.customerCategoryId = customerCategoryId; }
 
-    public String getCreatedDate() { return createdDate; }
-    public void setCreatedDate(String createdDate) { this.createdDate = createdDate; }
+    public String getCreatedAt() { return createdAt; }
+    public void setCreatedAt(String createdDate) { this.createdAt = createdDate; }
+
+    public String getEditedAt() { return editedAt; }
+    public void setEditedAt(String editedDate) { this.editedAt = editedDate; }
 
     @Override
     public String toString() {

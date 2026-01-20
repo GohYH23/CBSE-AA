@@ -6,8 +6,6 @@ import com.inventory.api.customer.model.CustomerGroup;
 import com.inventory.api.customer.model.CustomerCategory;
 import com.inventory.api.customer.model.CustomerContact;
 
-import com.mongodb.ConnectionString;
-import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
@@ -15,33 +13,31 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.result.DeleteResult;
 
-import org.bson.codecs.configuration.CodecRegistry;
-import org.bson.codecs.pojo.PojoCodecProvider;
+import org.bson.Document;
+import org.bson.types.ObjectId;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
-import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
-import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
 
 @Component(service = CustomerService.class)
 public class CustomerServiceImpl implements CustomerService {
 
     private MongoClient mongoClient;
+    private MongoDatabase database;
 
-    // Collections
-    private MongoCollection<Customer> customerCollection;
-    private MongoCollection<CustomerGroup> groupCollection;
-    private MongoCollection<CustomerCategory> categoryCollection;
-    private MongoCollection<CustomerContact> contactCollection;
+    private MongoCollection<Document> customerCollection;
+    private MongoCollection<Document> groupCollection;
+    private MongoCollection<Document> categoryCollection;
+    private MongoCollection<Document> contactCollection;
 
     @Activate
     public void activate() {
-        System.out.println("✅ Customer Service: Starting...");
+        System.out.println("✅ Customer Service: Starting with MANUAL Mapping...");
         try {
             String uri = System.getProperty("mongodb.uri");
             if (uri == null || uri.isEmpty()) {
@@ -49,25 +45,17 @@ public class CustomerServiceImpl implements CustomerService {
                 return;
             }
 
-            // Configure Codec to handle POJOs automatically
-            CodecRegistry pojoCodecRegistry = fromProviders(PojoCodecProvider.builder().automatic(true).build());
-            CodecRegistry codecRegistry = fromRegistries(MongoClientSettings.getDefaultCodecRegistry(), pojoCodecRegistry);
+            // 1. Standard Connection (No CodecRegistry needed for Document)
+            mongoClient = MongoClients.create(uri);
+            database = mongoClient.getDatabase("inventory_db_osgi");
 
-            MongoClientSettings settings = MongoClientSettings.builder()
-                    .applyConnectionString(new ConnectionString(uri))
-                    .codecRegistry(codecRegistry)
-                    .build();
+            // 2. Initialize Collections as 'Document'
+            customerCollection = database.getCollection("customers");
+            groupCollection = database.getCollection("customer_groups");
+            categoryCollection = database.getCollection("customer_categories");
+            contactCollection = database.getCollection("customer_contacts");
 
-            mongoClient = MongoClients.create(settings);
-            MongoDatabase database = mongoClient.getDatabase("inventory_db_osgi");
-
-            // Initialize Collections mapped to the API classes
-            customerCollection = database.getCollection("customers", Customer.class);
-            groupCollection = database.getCollection("customer_groups", CustomerGroup.class);
-            categoryCollection = database.getCollection("customer_categories", CustomerCategory.class);
-            contactCollection = database.getCollection("customer_contacts", CustomerContact.class);
-
-            System.out.println("✅ Customer Service: Database Connected.");
+            System.out.println("✅ Customer Service: Database Connected (Manual Mode).");
 
         } catch (Exception e) {
             System.err.println("❌ Customer Service: Connection Failed.");
@@ -81,151 +69,318 @@ public class CustomerServiceImpl implements CustomerService {
         System.out.println("🛑 Customer Service: Stopped.");
     }
 
-    // ================= CUSTOMERS =================
+    // MAPPING HELPERS METHOD
+
+    // --- CUSTOMER MAPPING ---
+    private Customer mapToCustomer(Document doc) {
+        if (doc == null) return null;
+        Customer c = new Customer();
+        // Safe ID conversion: works for both ObjectId and String in DB
+        c.setId(doc.get("_id").toString());
+        c.setName(doc.getString("name"));
+        c.setEmail(doc.getString("email"));
+        c.setPhoneNumber(doc.getString("phoneNumber"));
+        c.setAddress(doc.getString("address"));
+        c.setCustomerGroupId(doc.getString("customerGroupId"));
+        c.setCustomerCategoryId(doc.getString("customerCategoryId"));
+        c.setCreatedAt(doc.getString("createdAt"));
+        c.setEditedAt(doc.getString("editedAt"));
+        return c;
+    }
+
+    private Document mapFromCustomer(Customer c) {
+        Document doc = new Document()
+                .append("name", c.getName())
+                .append("email", c.getEmail())
+                .append("phoneNumber", c.getPhoneNumber())
+                .append("address", c.getAddress())
+                .append("customerGroupId", c.getCustomerGroupId())
+                .append("customerCategoryId", c.getCustomerCategoryId())
+                .append("createdAt", c.getCreatedAt())
+                .append("editedAt", c.getEditedAt());
+        return doc;
+    }
+
+    // --- GROUP MAPPING ---
+    private CustomerGroup mapToGroup(Document doc) {
+        if (doc == null) return null;
+        CustomerGroup g = new CustomerGroup();
+        g.setId(doc.get("_id").toString());
+        g.setGroupName(doc.getString("groupName"));
+        g.setDescription(doc.getString("description"));
+        g.setCreatedAt(doc.getString("createdAt"));
+        g.setEditedAt(doc.getString("editedAt"));
+        return g;
+    }
+
+    private Document mapFromGroup(CustomerGroup g) {
+        return new Document()
+                .append("groupName", g.getGroupName())
+                .append("description", g.getDescription())
+                .append("createdAt", g.getCreatedAt())
+                .append("editedAt", g.getEditedAt());
+    }
+
+    // --- CATEGORY MAPPING ---
+    private CustomerCategory mapToCategory(Document doc) {
+        if (doc == null) return null;
+        CustomerCategory c = new CustomerCategory();
+        c.setId(doc.get("_id").toString());
+        c.setCategoryName(doc.getString("categoryName"));
+        c.setDescription(doc.getString("description"));
+        c.setCreatedAt(doc.getString("createdAt"));
+        c.setEditedAt(doc.getString("editedAt"));
+        return c;
+    }
+
+    private Document mapFromCategory(CustomerCategory c) {
+        return new Document()
+                .append("categoryName", c.getCategoryName())
+                .append("description", c.getDescription())
+                .append("createdAt", c.getCreatedAt())
+                .append("editedAt", c.getEditedAt());
+    }
+
+    // --- CONTACT MAPPING ---
+    private CustomerContact mapToContact(Document doc) {
+        if (doc == null) return null;
+        CustomerContact c = new CustomerContact();
+        c.setId(doc.get("_id").toString());
+        c.setContactName(doc.getString("contactName"));
+        c.setPosition(doc.getString("position"));
+        c.setPhone(doc.getString("phone"));
+        c.setEmail(doc.getString("email"));
+        c.setCustomerId(doc.getString("customerId"));
+        c.setCreatedAt(doc.getString("createdAt"));
+        c.setEditedAt(doc.getString("editedAt"));
+        return c;
+    }
+
+    private Document mapFromContact(CustomerContact c) {
+        return new Document()
+                .append("contactName", c.getContactName())
+                .append("position", c.getPosition())
+                .append("phone", c.getPhone())
+                .append("email", c.getEmail())
+                .append("customerId", c.getCustomerId())
+                .append("createdAt", c.getCreatedAt())
+                .append("editedAt", c.getEditedAt());
+    }
+
+    // CUSTOMER IMPLEMENTATION
 
     @Override
     public void createCustomer(Customer customer) {
-        customerCollection.insertOne(customer);
+        if (customer.getCreatedAt() == null) {
+            customer.setCreatedAt(LocalDateTime.now().toString());
+        }
+        Document doc = mapFromCustomer(customer);
+        customerCollection.insertOne(doc);
     }
 
     @Override
     public List<Customer> getAllCustomers() {
-        return customerCollection.find().into(new ArrayList<>());
+        List<Customer> list = new ArrayList<>();
+        for (Document doc : customerCollection.find()) {
+            list.add(mapToCustomer(doc));
+        }
+        return list;
     }
 
     @Override
     public Optional<Customer> getCustomerByName(String name) {
-        return Optional.ofNullable(customerCollection.find(Filters.eq("name", name)).first());
+        Document doc = customerCollection.find(Filters.eq("name", name)).first();
+        return Optional.ofNullable(mapToCustomer(doc));
     }
 
     @Override
     public Optional<Customer> getCustomerById(String id) {
-        return Optional.ofNullable(customerCollection.find(Filters.eq("_id", id)).first());
+        try {
+            Document doc = customerCollection.find(Filters.eq("_id", new ObjectId(id))).first();
+            return Optional.ofNullable(mapToCustomer(doc));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
     }
 
     @Override
     public void updateCustomer(Customer customer) {
         if (customer.getId() != null) {
-            customerCollection.replaceOne(Filters.eq("_id", customer.getId()), customer);
+            customer.setEditedAt(LocalDateTime.now().toString());
+            Document doc = mapFromCustomer(customer);
+            customerCollection.replaceOne(Filters.eq("_id", new ObjectId(customer.getId())), doc);
         }
     }
 
     @Override
     public void deleteCustomer(String id) {
-        customerCollection.deleteOne(Filters.eq("_id", id));
+        try {
+            customerCollection.deleteOne(Filters.eq("_id", new ObjectId(id)));
+            contactCollection.deleteMany(Filters.eq("customerId", id));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
-    // ================= GROUPS =================
+    // GROUPS IMPLEMENTATION
 
     @Override
     public void createGroup(CustomerGroup group) {
-        groupCollection.insertOne(group);
+        if (group.getCreatedAt() == null) group.setCreatedAt(LocalDateTime.now().toString());
+        Document doc = mapFromGroup(group);
+        groupCollection.insertOne(doc);
     }
 
     @Override
     public List<CustomerGroup> getAllGroups() {
-        return groupCollection.find().into(new ArrayList<>());
+        List<CustomerGroup> list = new ArrayList<>();
+        for (Document doc : groupCollection.find()) {
+            list.add(mapToGroup(doc));
+        }
+        return list;
     }
 
     @Override
     public Optional<CustomerGroup> getGroupByName(String name) {
-        return Optional.ofNullable(groupCollection.find(Filters.eq("groupName", name)).first());
+        Document doc = groupCollection.find(Filters.eq("groupName", name)).first();
+        return Optional.ofNullable(mapToGroup(doc));
     }
 
     @Override
     public Optional<CustomerGroup> getGroupById(String id) {
-        return Optional.ofNullable(groupCollection.find(Filters.eq("_id", id)).first());
+        try {
+            Document doc = groupCollection.find(Filters.eq("_id", new ObjectId(id))).first();
+            return Optional.ofNullable(mapToGroup(doc));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
     }
 
     @Override
     public void updateGroup(CustomerGroup group) {
         if (group.getId() != null) {
-            groupCollection.replaceOne(Filters.eq("_id", group.getId()), group);
+            group.setEditedAt(LocalDateTime.now().toString());
+            Document doc = mapFromGroup(group);
+            groupCollection.replaceOne(Filters.eq("_id", new ObjectId(group.getId())), doc);
         }
     }
 
     @Override
     public String deleteGroup(String id) {
-        // Check if any customer uses this group
         long count = customerCollection.countDocuments(Filters.eq("customerGroupId", id));
         if (count > 0) {
             return "Cannot delete: Group is assigned to " + count + " customers.";
         }
-        DeleteResult result = groupCollection.deleteOne(Filters.eq("_id", id));
-        return result.getDeletedCount() > 0 ? "Group deleted." : "Group not found.";
+        try {
+            DeleteResult res = groupCollection.deleteOne(Filters.eq("_id", new ObjectId(id)));
+            return res.getDeletedCount() > 0 ? "Group deleted." : "Group not found.";
+        } catch (Exception e) {
+            return "Error: " + e.getMessage();
+        }
     }
 
-    // ================= CATEGORIES =================
+    //CATEGORIES IMPLEMENTATION
 
     @Override
     public void createCategory(CustomerCategory category) {
-        categoryCollection.insertOne(category);
+        if (category.getCreatedAt() == null) category.setCreatedAt(LocalDateTime.now().toString());
+        Document doc = mapFromCategory(category);
+        categoryCollection.insertOne(doc);
     }
 
     @Override
     public List<CustomerCategory> getAllCategories() {
-        return categoryCollection.find().into(new ArrayList<>());
+        List<CustomerCategory> list = new ArrayList<>();
+        for (Document doc : categoryCollection.find()) {
+            list.add(mapToCategory(doc));
+        }
+        return list;
     }
 
     @Override
     public Optional<CustomerCategory> getCategoryByName(String name) {
-        return Optional.ofNullable(categoryCollection.find(Filters.eq("categoryName", name)).first());
+        Document doc = categoryCollection.find(Filters.eq("categoryName", name)).first();
+        return Optional.ofNullable(mapToCategory(doc));
     }
 
     @Override
     public Optional<CustomerCategory> getCategoryById(String id) {
-        return Optional.ofNullable(categoryCollection.find(Filters.eq("_id", id)).first());
+        try {
+            Document doc = categoryCollection.find(Filters.eq("_id", new ObjectId(id))).first();
+            return Optional.ofNullable(mapToCategory(doc));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
     }
 
     @Override
     public void updateCategory(CustomerCategory category) {
         if (category.getId() != null) {
-            categoryCollection.replaceOne(Filters.eq("_id", category.getId()), category);
+            category.setEditedAt(LocalDateTime.now().toString());
+            Document doc = mapFromCategory(category);
+            categoryCollection.replaceOne(Filters.eq("_id", new ObjectId(category.getId())), doc);
         }
     }
 
     @Override
     public String deleteCategory(String id) {
-        // Check if any customer uses this category
         long count = customerCollection.countDocuments(Filters.eq("customerCategoryId", id));
         if (count > 0) {
             return "Cannot delete: Category is assigned to " + count + " customers.";
         }
-        DeleteResult result = categoryCollection.deleteOne(Filters.eq("_id", id));
-        return result.getDeletedCount() > 0 ? "Category deleted." : "Category not found.";
+        try {
+            DeleteResult res = categoryCollection.deleteOne(Filters.eq("_id", new ObjectId(id)));
+            return res.getDeletedCount() > 0 ? "Category deleted." : "Category not found.";
+        } catch (Exception e) {
+            return "Error: " + e.getMessage();
+        }
     }
 
-    // ================= CONTACTS =================
-
+    // CONTACTS IMPLEMENTATION
     @Override
     public List<CustomerContact> getAllContacts() {
-        return contactCollection.find().into(new ArrayList<>());
+        List<CustomerContact> list = new ArrayList<>();
+        for (Document doc : contactCollection.find()) {
+            list.add(mapToContact(doc));
+        }
+        return list;
     }
 
     @Override
     public List<CustomerContact> getContactsByCustomerId(String customerId) {
-        return contactCollection.find(Filters.eq("customerId", customerId)).into(new ArrayList<>());
+        List<CustomerContact> list = new ArrayList<>();
+        for (Document doc : contactCollection.find(Filters.eq("customerId", customerId))) {
+            list.add(mapToContact(doc));
+        }
+        return list;
     }
 
     @Override
     public void addContact(String customerId, CustomerContact contact) {
         contact.setCustomerId(customerId);
-        contactCollection.insertOne(contact);
+        if (contact.getCreatedAt() == null) contact.setCreatedAt(LocalDateTime.now().toString());
+        Document doc = mapFromContact(contact);
+        contactCollection.insertOne(doc);
     }
 
     @Override
     public void updateContact(CustomerContact contact) {
         if (contact.getId() != null) {
-            contactCollection.replaceOne(Filters.eq("_id", contact.getId()), contact);
+            contact.setEditedAt(LocalDateTime.now().toString());
+            Document doc = mapFromContact(contact);
+            contactCollection.replaceOne(Filters.eq("_id", new ObjectId(contact.getId())), doc);
         }
     }
 
     @Override
     public void deleteContact(String id) {
-        contactCollection.deleteOne(Filters.eq("_id", id));
+        try {
+            contactCollection.deleteOne(Filters.eq("_id", new ObjectId(id)));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
-
 //package com.inventory.customer;
 //
 //import com.inventory.api.customer.CustomerService;

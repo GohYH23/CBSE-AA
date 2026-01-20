@@ -10,6 +10,7 @@ import com.inventory.api.customer.model.CustomerContact;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
@@ -21,9 +22,23 @@ public class CustomerMenu implements ModuleMenu {
     @Reference
     private CustomerService customerService;
 
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
     @Override
     public String getModuleName() {
         return "Customer Management Module";
+    }
+
+    private String formatDate(String dateStr) {
+        if (dateStr == null || dateStr.trim().isEmpty()) {
+            return "-";
+        }
+        try {
+            LocalDateTime dateTime = LocalDateTime.parse(dateStr);
+            return dateTime.format(FORMATTER);
+        } catch (Exception e) {
+            return dateStr;
+        }
     }
 
     // Helper to allow skipping updates on Edit
@@ -83,14 +98,20 @@ public class CustomerMenu implements ModuleMenu {
                         System.out.println("No groups found.");
                     } else {
                         System.out.println("\n--- Customer Groups ---");
-                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-                        System.out.printf("%-4s %-20s %-35s %-20s%n", "No.", "Group Name", "Description", "Created Date");
-                        System.out.println("-----------------------------------------------------------------------------------");
+                        System.out.printf("%-4s %-20s %-30s %-20s %-20s%n",
+                                "No.", "Group Name", "Description", "Created At", "Edited At");
+                        System.out.println("------------------------------------------------------------------------------------------------------------");
+
                         int i = 1;
                         for (CustomerGroup g : groups) {
-                            String dateStr = (g.getCreatedDate() != null) ? g.getCreatedDate() : "N/A";
-                            System.out.printf("%-4d %-20s %-35s %-20s%n", i++, g.getGroupName(),
-                                    (g.getDescription() != null ? g.getDescription() : "N/A"), dateStr);
+                            // Apply formatting
+                            String created = formatDate(g.getCreatedAt());
+                            String edited = formatDate(g.getEditedAt());
+
+                            System.out.printf("%-4d %-20s %-30s %-20s %-20s%n",
+                                    i++, g.getGroupName(),
+                                    (g.getDescription() != null ? g.getDescription() : "N/A"),
+                                    created, edited);
                         }
                     }
                     break;
@@ -103,7 +124,7 @@ public class CustomerMenu implements ModuleMenu {
                     g.setGroupName(name);
                     g.setDescription(desc);
                     customerService.createGroup(g);
-                    System.out.println("✅ Group Created!");
+                    System.out.println("Group Created Successfully!");
                     break;
                 case "3":
                     performEditGroup(scanner);
@@ -116,14 +137,14 @@ public class CustomerMenu implements ModuleMenu {
                         String message = customerService.deleteGroup(groupOpt.get().getId());
                         System.out.println(message);
                     } else {
-                        System.out.println("❌ Group not found.");
+                        System.out.println("Group trying to delete is not found.");
                     }
                     break;
                 case "5":
                     stay = false;
                     break;
                 default:
-                    System.out.println("Invalid option.");
+                    System.out.println("Invalid option. Please try again (1-5)");
             }
         }
     }
@@ -150,13 +171,19 @@ public class CustomerMenu implements ModuleMenu {
                         System.out.println("No categories found.");
                     } else {
                         System.out.println("\n--- Customer Categories ---");
-                        System.out.printf("%-4s %-20s %-35s %-20s%n", "No.", "Category Name", "Description", "Created Date");
-                        System.out.println("-----------------------------------------------------------------------------------");
+                        System.out.printf("%-4s %-20s %-35s %-20s %-20s%n",
+                                "No.", "Category Name", "Description", "Created At", "Edited At");
+                        System.out.println("----------------------------------------------------------------------------------------------------------------");
                         int i = 1;
                         for (CustomerCategory c : cats) {
-                            String dateStr = (c.getCreatedDate() != null) ? c.getCreatedDate() : "N/A";
-                            System.out.printf("%-4d %-20s %-35s %-20s%n", i++, c.getCategoryName(),
-                                    (c.getDescription() != null ? c.getDescription() : "N/A"), dateStr);
+                            // Apply formatting
+                            String created = formatDate(c.getCreatedAt());
+                            String edited = formatDate(c.getEditedAt());
+
+                            System.out.printf("%-4d %-20s %-35s %-20s %-20s%n",
+                                    i++, c.getCategoryName(),
+                                    (c.getDescription() != null ? c.getDescription() : "N/A"),
+                                    created, edited);
                         }
                     }
                     break;
@@ -169,7 +196,7 @@ public class CustomerMenu implements ModuleMenu {
                     c.setCategoryName(name);
                     c.setDescription(desc);
                     customerService.createCategory(c);
-                    System.out.println("✅ Category Created!");
+                    System.out.println("Category Created Successfully!");
                     break;
                 case "3":
                     performEditCategory(scanner);
@@ -182,14 +209,14 @@ public class CustomerMenu implements ModuleMenu {
                         String message = customerService.deleteCategory(opt.get().getId());
                         System.out.println(message);
                     } else {
-                        System.out.println("❌ Category not found.");
+                        System.out.println("Category trying to delete is not found.");
                     }
                     break;
                 case "5":
                     stay = false;
                     break;
                 default:
-                    System.out.println("Invalid option.");
+                    System.out.println("Invalid option. Please try again (1-5)");
             }
         }
     }
@@ -215,9 +242,9 @@ public class CustomerMenu implements ModuleMenu {
                     if (customers.isEmpty()) System.out.println("No customers found.");
                     else {
                         System.out.println("\n--- Customer List ---");
-                        System.out.printf("%-4s %-15s %-25s %-12s %-20s %-15s %-15s %-20s%n",
-                                "No.", "Name", "Email", "Phone", "Address", "Group", "Category", "Created Date");
-                        System.out.println("------------------------------------------------------------------------------------------------------------------------------------------");
+                        System.out.printf("%-4s %-15s %-25s %-12s %-20s %-15s %-15s %-20s %-20s%n",
+                                "No.", "Name", "Email", "Phone", "Address", "Group", "Category", "Created At", "Edited At");
+                        System.out.println("----------------------------------------------------------------------------------------------------------------------------------------------------------------------");
 
                         int i = 1;
                         for (Customer c : customers) {
@@ -231,11 +258,13 @@ public class CustomerMenu implements ModuleMenu {
                                 Optional<CustomerCategory> cOpt = customerService.getCategoryById(c.getCustomerCategoryId());
                                 if (cOpt.isPresent()) catName = cOpt.get().getCategoryName();
                             }
-                            String dateStr = (c.getCreatedDate() != null) ? c.getCreatedDate() : "N/A";
+                            // Apply formatting
+                            String created = formatDate(c.getCreatedAt());
+                            String edited = formatDate(c.getEditedAt());
                             String addressDisplay = (c.getAddress() != null) ? c.getAddress() : "N/A";
 
-                            System.out.printf("%-4d %-15s %-25s %-12s %-20s %-15s %-15s %-20s%n",
-                                    i++, c.getName(), c.getEmail(), c.getPhoneNumber(), addressDisplay, groupName, catName, dateStr);
+                            System.out.printf("%-4d %-15s %-25s %-12s %-20s %-15s %-15s %-20s %-20s%n",
+                                    i++, c.getName(), c.getEmail(), c.getPhoneNumber(), addressDisplay, groupName, catName, created, edited);
                         }
                     }
                     break;
@@ -251,16 +280,16 @@ public class CustomerMenu implements ModuleMenu {
                     Optional<Customer> delOpt = customerService.getCustomerByName(delName);
                     if (delOpt.isPresent()) {
                         customerService.deleteCustomer(delOpt.get().getId());
-                        System.out.println("✅ Customer deleted successfully.");
+                        System.out.println("Customer deleted successfully.");
                     } else {
-                        System.out.println("❌ Customer not found.");
+                        System.out.println("Customer trying to delete is not found.");
                     }
                     break;
                 case "5":
                     stay = false;
                     break;
                 default:
-                    System.out.println("Invalid option.");
+                    System.out.println("Invalid option. Please try again (1-5)");
             }
         }
     }
@@ -293,22 +322,25 @@ public class CustomerMenu implements ModuleMenu {
                         System.out.println("No contacts found.");
                     } else {
                         System.out.println("\n--- All Customer Contacts ---");
-                        System.out.printf("%-4s %-20s %-20s %-15s %-25s %-15s %-20s%n",
-                                "No.", "Contact Name", "Customer", "Position", "Email", "Phone", "Created Date");
-                        System.out.println("----------------------------------------------------------------------------------------------------------------------------------");
+                        System.out.printf("%-4s %-20s %-20s %-15s %-25s %-15s %-20s %-20s%n",
+                                "No.", "Contact Name", "Customer", "Position", "Email", "Phone", "Created At", "Edited At");
+                        System.out.println("--------------------------------------------------------------------------------------------------------------------------------------------------------");
 
                         int i = 1;
                         for (CustomerContact con : allContacts) {
                             String custName = customerService.getCustomerById(con.getCustomerId())
                                     .map(Customer::getName).orElse("N/A");
-                            String dateStr = (con.getCreatedDate() != null) ? con.getCreatedDate() : "N/A";
+
+                            // Apply formatting
+                            String created = formatDate(con.getCreatedAt());
+                            String edited = formatDate(con.getEditedAt());
                             String emailDisplay = (con.getEmail() != null) ? con.getEmail() : "N/A";
 
-                            System.out.printf("%-4d %-20s %-20s %-15s %-25s %-15s %-20s%n",
+                            System.out.printf("%-4d %-20s %-20s %-15s %-25s %-15s %-20s %-20s%n",
                                     i++, con.getContactName(), custName,
                                     (con.getPosition() != null ? con.getPosition() : "N/A"),
                                     emailDisplay,
-                                    (con.getPhone() != null ? con.getPhone() : "N/A"), dateStr);
+                                    (con.getPhone() != null ? con.getPhone() : "N/A"), created, edited);
                         }
                     }
                     break;
@@ -321,7 +353,7 @@ public class CustomerMenu implements ModuleMenu {
                     Optional<Customer> custOpt = customerService.getCustomerByName(custName);
 
                     if (custOpt.isEmpty()) {
-                        System.out.println("❌ Error: Customer '" + custName + "' not found.");
+                        System.out.println("Error: Customer '" + custName + "' not found.");
                         break;
                     }
                     String custId = custOpt.get().getId();
@@ -332,15 +364,19 @@ public class CustomerMenu implements ModuleMenu {
                             System.out.println("No contacts found for " + custName);
                         } else {
                             System.out.println("\n--- Contacts for " + custName + " ---");
-                            System.out.printf("%-4s %-20s %-15s %-25s %-15s %-20s%n", "No.", "Contact Name", "Position", "Email", "Phone", "Created Date");
-                            System.out.println("----------------------------------------------------------------------------------------------------------------");
+                            System.out.printf("%-4s %-20s %-15s %-25s %-15s %-20s %-20s%n",
+                                    "No.", "Contact Name", "Position", "Email", "Phone", "Created At", "Edited At");
+                            System.out.println("--------------------------------------------------------------------------------------------------------------------------------");
                             int k = 1;
                             for (CustomerContact con : contacts) {
-                                String d = (con.getCreatedDate() != null) ? con.getCreatedDate() : "N/A";
+                                // Apply formatting
+                                String created = formatDate(con.getCreatedAt());
+                                String edited = formatDate(con.getEditedAt());
                                 String em = (con.getEmail() != null) ? con.getEmail() : "N/A";
-                                System.out.printf("%-4d %-20s %-15s %-25s %-15s %-20s%n",
+
+                                System.out.printf("%-4d %-20s %-15s %-25s %-15s %-20s %-20s%n",
                                         k++, con.getContactName(), (con.getPosition() != null ? con.getPosition() : "N/A"),
-                                        em, (con.getPhone() != null ? con.getPhone() : "N/A"), d);
+                                        em, (con.getPhone() != null ? con.getPhone() : "N/A"), created, edited);
                             }
                         }
                     } else if (choice.equals("3")) {
@@ -355,7 +391,7 @@ public class CustomerMenu implements ModuleMenu {
                         c.setEmail(email);
                         c.setPhone(phone);
                         customerService.addContact(custId, c);
-                        System.out.println("✅ Contact Added to " + custName + ".");
+                        System.out.println("Contact Added to " + custName + ".");
                     } else if (choice.equals("4")) {
                         System.out.print("Enter Contact Name to Edit: ");
                         String editName = scanner.nextLine();
@@ -369,9 +405,9 @@ public class CustomerMenu implements ModuleMenu {
                             c.setEmail(promptForUpdate(scanner, "Email", c.getEmail()));
                             c.setPhone(promptForUpdate(scanner, "Phone", c.getPhone()));
                             customerService.updateContact(c);
-                            System.out.println("✅ Contact updated!");
+                            System.out.println("Contact updated!");
                         } else {
-                            System.out.println("❌ Contact not found.");
+                            System.out.println("Contact not found.");
                         }
                     } else if (choice.equals("5")) {
                         System.out.print("Enter Contact Name to Delete: ");
@@ -381,13 +417,13 @@ public class CustomerMenu implements ModuleMenu {
                                 .filter(c -> c.getContactName().equalsIgnoreCase(delName)).findFirst();
                         if (target.isPresent()) {
                             customerService.deleteContact(target.get().getId());
-                            System.out.println("✅ Contact deleted.");
+                            System.out.println("Contact deleted.");
                         } else {
-                            System.out.println("❌ Contact not found.");
+                            System.out.println("Contact not found.");
                         }
                     }
                     break;
-                default: System.out.println("Invalid option.");
+                default: System.out.println("Invalid option. Please try again (1-6)");
             }
         }
     }
@@ -428,7 +464,7 @@ public class CustomerMenu implements ModuleMenu {
         newCustomer.setCustomerCategoryId(catOpt.get().getId());
 
         customerService.createCustomer(newCustomer);
-        System.out.println("✅ Customer saved successfully!");
+        System.out.println("Customer saved successfully!");
     }
 
     private void performEditCustomer(Scanner scanner) {
@@ -460,7 +496,7 @@ public class CustomerMenu implements ModuleMenu {
             if (newGroupOpt.isPresent()) {
                 cust.setCustomerGroupId(newGroupOpt.get().getId());
             } else {
-                System.out.println("⚠️ Group '" + newGroupName + "' not found. Keeping old group.");
+                System.out.println("Group '" + newGroupName + "' not found. Keeping old group.");
             }
         }
 
@@ -475,12 +511,12 @@ public class CustomerMenu implements ModuleMenu {
             if (newCatOpt.isPresent()) {
                 cust.setCustomerCategoryId(newCatOpt.get().getId());
             } else {
-                System.out.println("⚠️ Category '" + newCatName + "' not found. Keeping old category.");
+                System.out.println("Category '" + newCatName + "' not found. Keeping old category.");
             }
         }
 
         customerService.updateCustomer(cust);
-        System.out.println("✅ Customer updated successfully.");
+        System.out.println("Customer updated successfully.");
     }
 
     private void performEditGroup(Scanner scanner) {
@@ -498,7 +534,7 @@ public class CustomerMenu implements ModuleMenu {
         g.setGroupName(promptForUpdate(scanner, "Group Name", g.getGroupName()));
         g.setDescription(promptForUpdate(scanner, "Description", g.getDescription()));
         customerService.updateGroup(g);
-        System.out.println("✅ Group updated!");
+        System.out.println("Group updated!");
     }
 
     private void performEditCategory(Scanner scanner) {
@@ -516,6 +552,6 @@ public class CustomerMenu implements ModuleMenu {
         c.setCategoryName(promptForUpdate(scanner, "Category Name", c.getCategoryName()));
         c.setDescription(promptForUpdate(scanner, "Description", c.getDescription()));
         customerService.updateCategory(c);
-        System.out.println("✅ Category updated!");
+        System.out.println("Category updated!");
     }
 }

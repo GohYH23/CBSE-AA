@@ -1,28 +1,32 @@
 package com.inventory.api.product;
 
 import java.util.List;
-import java.util.Scanner; // Don't forget to import Scanner!
+import java.util.Scanner;
 
 public interface ProductService {
-
-    // Products
+    // Product
     void addProduct(Product product);
-    List<Product> getAllProducts();
+    void updateProduct(Product product); // <-- NEW
     void deleteProduct(String id);
+    List<Product> getAllProducts();
+    Product getProduct(String id);       // <-- NEW
 
-    // Groups
+    // Group
     void addProductGroup(ProductGroup group);
+    void deleteProductGroup(String id);  // <-- NEW
     List<ProductGroup> getAllProductGroups();
 
     // UOM
     void addUnitMeasure(UnitMeasure uom);
+    void deleteUnitMeasure(String id);   // <-- NEW
     List<UnitMeasure> getAllUnitMeasures();
 
-    // Warehouses
+    // Warehouse
     void addWarehouse(Warehouse warehouse);
+    void deleteWarehouse(String name);   // <-- NEW
     List<Warehouse> getAllWarehouses();
 
-    // Stock Count (UC-12)
+    // Stock
     void addStockCount(StockCount stock);
     List<StockCount> getAllStockCounts();
 

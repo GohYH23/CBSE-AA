@@ -10,12 +10,16 @@ public class Product implements Serializable {
     private String id;
     private String name;
     private double price;
-    private int quantity; // Useful for inventory tracking
+    private int quantity;
+
+    // --- NEW FIELDS FOR LINKING (UC-09) ---
+    private String productGroupId;
+    private String uomId;
 
     // 2. Default Constructor (Crucial for reading from files)
     public Product() {}
 
-    // 3. Helper Constructor (Makes creating new products easier)
+    // 3. Helper Constructor
     public Product(String id, String name, double price, int quantity) {
         this.id = id;
         this.name = name;
@@ -23,7 +27,7 @@ public class Product implements Serializable {
         this.quantity = quantity;
     }
 
-    // 4. Getters and Setters (So other code can read/write these values)
+    // 4. Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
@@ -36,9 +40,16 @@ public class Product implements Serializable {
     public int getQuantity() { return quantity; }
     public void setQuantity(int quantity) { this.quantity = quantity; }
 
-    // 5. toString (Helps when printing the object for debugging)
+    // --- NEW GETTERS AND SETTERS ---
+    public String getProductGroupId() { return productGroupId; }
+    public void setProductGroupId(String productGroupId) { this.productGroupId = productGroupId; }
+
+    public String getUomId() { return uomId; }
+    public void setUomId(String uomId) { this.uomId = uomId; }
+
+    // 5. toString (Updated to show links)
     @Override
     public String toString() {
-        return "Product [id=" + id + ", name=" + name + ", price=" + price + ", qty=" + quantity + "]";
+        return id + " | " + name + " | $" + price + " (Grp: " + productGroupId + ", UOM: " + uomId + ")";
     }
 }

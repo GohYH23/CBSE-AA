@@ -27,7 +27,7 @@ public class InventoryManagementApplication implements CommandLineRunner {
         boolean running = true;
 
         System.out.println("==========================================");
-        System.out.println("   INVENTORY MANAGEMENT SYSTEM (V2.0)     ");
+        System.out.println("   INVENTORY MANAGEMENT SYSTEM     ");
         System.out.println("==========================================");
 
         while (running) {

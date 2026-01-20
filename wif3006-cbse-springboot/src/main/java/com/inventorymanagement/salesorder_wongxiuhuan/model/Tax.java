@@ -1,7 +1,12 @@
 package com.inventorymanagement.salesorder_wongxiuhuan.model;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.mapping.Document;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -10,78 +15,50 @@ import java.time.LocalDateTime;
 public class Tax {
     @Id
     private String id;
+    
+    @NotBlank(message = "Tax name is required")
     private String taxName;
+    
+    @NotNull(message = "Tax rate is required")
+    @PositiveOrZero(message = "Tax rate must be zero or positive")
     private BigDecimal taxRate;
+    
     private String description;
+    
+    @CreatedDate
     private LocalDateTime createdDate;
+    
+    @LastModifiedDate
     private LocalDateTime updatedDate;
 
     // Constructors
-    public Tax() {
-        this.createdDate = LocalDateTime.now();
-        this.updatedDate = LocalDateTime.now();
-    }
+    public Tax() {}
 
     public Tax(String id, String taxName, BigDecimal taxRate, String description) {
         this.id = id;
         this.taxName = taxName;
         this.taxRate = taxRate;
         this.description = description;
-        this.createdDate = LocalDateTime.now();
-        this.updatedDate = LocalDateTime.now();
     }
 
     // Getters and Setters
-    public String getId() {
-        return id;
-    }
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
 
-    public void setId(String id) {
-        this.id = id;
-    }
+    public String getTaxName() { return taxName; }
+    public void setTaxName(String taxName) { this.taxName = taxName; }
 
-    public String getTaxName() {
-        return taxName;
-    }
+    public BigDecimal getTaxRate() { return taxRate; }
+    public void setTaxRate(BigDecimal taxRate) { this.taxRate = taxRate; }
 
-    public void setTaxName(String taxName) {
-        this.taxName = taxName;
-        this.updatedDate = LocalDateTime.now();
-    }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
 
-    public BigDecimal getTaxRate() {
-        return taxRate;
-    }
+    public LocalDateTime getCreatedDate() { return createdDate; }
+    public void setCreatedDate(LocalDateTime createdDate) { this.createdDate = createdDate; }
 
-    public void setTaxRate(BigDecimal taxRate) {
-        this.taxRate = taxRate;
-        this.updatedDate = LocalDateTime.now();
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-        this.updatedDate = LocalDateTime.now();
-    }
-
-    public LocalDateTime getCreatedDate() {
-        return createdDate;
-    }
-
-    public void setCreatedDate(LocalDateTime createdDate) {
-        this.createdDate = createdDate;
-    }
-
-    public LocalDateTime getUpdatedDate() {
-        return updatedDate;
-    }
-
-    public void setUpdatedDate(LocalDateTime updatedDate) {
-        this.updatedDate = updatedDate;
-    }
+    public LocalDateTime getUpdatedDate() { return updatedDate; }
+    public void setUpdatedDate(LocalDateTime updatedDate) { this.updatedDate = updatedDate; }
 
     // Helper method to calculate tax amount
     public BigDecimal calculateTaxAmount(BigDecimal baseAmount) {
@@ -93,13 +70,6 @@ public class Tax {
 
     @Override
     public String toString() {
-        return "Tax{" +
-                "id='" + id + '\'' +
-                ", taxName='" + taxName + '\'' +
-                ", taxRate=" + taxRate +
-                ", description='" + description + '\'' +
-                ", createdDate=" + createdDate +
-                ", updatedDate=" + updatedDate +
-                '}';
+        return "Tax{id='" + id + "', taxName='" + taxName + "', rate=" + taxRate + "%}";
     }
 }

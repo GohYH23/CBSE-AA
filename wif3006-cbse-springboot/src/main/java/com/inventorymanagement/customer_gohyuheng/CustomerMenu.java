@@ -70,18 +70,20 @@ public class CustomerMenu {
                         System.out.println("\n--- Customer Groups ---");
                         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
-                        System.out.printf("%-4s %-20s %-35s %-20s%n", "No.", "Group Name", "Description", "Created Date");
-                        System.out.println("-----------------------------------------------------------------------------------");
+                        System.out.printf("%-4s %-20s %-35s %-20s %-20s%n",
+                                "No.", "Group Name", "Description", "Created Date", "Updated Date");
+                        System.out.println("-------------------------------------------------------------------------------------------------------");
 
                         int i = 1;
                         for (CustomerGroup g : groups) {
                             String dateStr = (g.getCreatedDate() != null) ? g.getCreatedDate().format(formatter) : "N/A";
+                            String updateStr = (g.getUpdatedDate() != null) ? g.getUpdatedDate().format(formatter) : "-";
 
-                            System.out.printf("%-4d %-20s %-35s %-20s%n",
+                            System.out.printf("%-4d %-20s %-35s %-20s %-20s%n",
                                     i++,
                                     g.getGroupName(),
                                     (g.getDescription() != null ? g.getDescription() : "N/A"),
-                                    dateStr);
+                                    dateStr, updateStr);
                         }
                     }
                     break;
@@ -144,18 +146,20 @@ public class CustomerMenu {
                         System.out.println("\n--- Customer Categories ---");
                         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
-                        System.out.printf("%-4s %-20s %-35s %-20s%n", "No.", "Category Name", "Description", "Created Date");
-                        System.out.println("-----------------------------------------------------------------------------------");
+                        System.out.printf("%-4s %-20s %-35s %-20s %-20s%n",
+                                "No.", "Category Name", "Description", "Created Date", "Updated Date");
+                        System.out.println("-------------------------------------------------------------------------------------------------------");
 
                         int i = 1;
                         for (CustomerCategory c : cats) {
                             String dateStr = (c.getCreatedDate() != null) ? c.getCreatedDate().format(formatter) : "N/A";
+                            String updateStr = (c.getUpdatedDate() != null) ? c.getUpdatedDate().format(formatter) : "-";
 
-                            System.out.printf("%-4d %-20s %-35s %-20s%n",
+                            System.out.printf("%-4d %-20s %-35s %-20s %-20s%n",
                                     i++,
                                     c.getCategoryName(),
                                     (c.getDescription() != null ? c.getDescription() : "N/A"),
-                                    dateStr);
+                                    dateStr, updateStr);
                         }
                     }
                     break;
@@ -214,9 +218,9 @@ public class CustomerMenu {
                         System.out.println("\n--- Customer List ---");
                         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
-                        System.out.printf("%-4s %-15s %-25s %-12s %-20s %-15s %-15s %-20s%n",
-                                "No.", "Name", "Email", "Phone", "Address", "Group", "Category", "Created Date");
-                        System.out.println("------------------------------------------------------------------------------------------------------------------------------------------");
+                        System.out.printf("%-4s %-15s %-25s %-12s %-20s %-15s %-15s %-20s %-20s%n",
+                                "No.", "Name", "Email", "Phone", "Address", "Group", "Category", "Created Date", "Updated Date");
+                        System.out.println("----------------------------------------------------------------------------------------------------------------------------------------------------------------");
 
                         int i = 1;
                         for (Customer c : customers) {
@@ -233,12 +237,12 @@ public class CustomerMenu {
                             }
 
                             String dateStr = (c.getCreatedDate() != null) ? c.getCreatedDate().format(formatter) : "N/A";
+                            String updateStr = (c.getUpdatedDate() != null) ? c.getUpdatedDate().format(formatter) : "-";
 
                             // Safe check for null address
                             String addressDisplay = (c.getAddress() != null) ? c.getAddress() : "N/A";
 
-                            // 2. Update Data Row: Added addressDisplay
-                            System.out.printf("%-4d %-15s %-25s %-12s %-20s %-15s %-15s %-20s%n",
+                            System.out.printf("%-4d %-15s %-25s %-12s %-20s %-15s %-15s %-20s %-20s%n",
                                     i++,
                                     c.getName(),
                                     c.getEmail(),
@@ -246,7 +250,7 @@ public class CustomerMenu {
                                     addressDisplay,
                                     groupName,
                                     catName,
-                                    dateStr);
+                                    dateStr, updateStr);
                         }
                     }
                     break;
@@ -304,22 +308,23 @@ public class CustomerMenu {
                         System.out.println("\n--- All Customer Contacts ---");
                         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
-                        System.out.printf("%-4s %-20s %-20s %-15s %-25s %-15s %-20s%n",
-                                "No.", "Contact Name", "Customer", "Position", "Email", "Phone", "Created Date");
-                        System.out.println("----------------------------------------------------------------------------------------------------------------------------------");
+                        System.out.printf("%-4s %-20s %-20s %-15s %-25s %-15s %-20s %-20s%n",
+                                "No.", "Contact Name", "Customer", "Position", "Email", "Phone", "Created Date", "Updated Date");
+                        System.out.println("------------------------------------------------------------------------------------------------------------------------------------------------------");
 
                         int i = 1;
                         for (CustomerContact con : allContacts) {
                             String custName = customerService.getCustomerById(con.getCustomerId())
                                     .map(Customer::getName).orElse("N/A");
                             String dateStr = (con.getCreatedDate() != null) ? con.getCreatedDate().format(formatter) : "N/A";
+                            String updateStr = (con.getUpdatedDate() != null) ? con.getUpdatedDate().format(formatter) : "-";
                             String emailDisplay = (con.getEmail() != null) ? con.getEmail() : "N/A";
 
-                            System.out.printf("%-4d %-20s %-20s %-15s %-25s %-15s %-20s%n",
+                            System.out.printf("%-4d %-20s %-20s %-15s %-25s %-15s %-20s %-20s%n",
                                     i++, con.getContactName(), custName,
                                     (con.getPosition() != null ? con.getPosition() : "N/A"),
                                     emailDisplay,
-                                    (con.getPhone() != null ? con.getPhone() : "N/A"), dateStr);
+                                    (con.getPhone() != null ? con.getPhone() : "N/A"), dateStr, updateStr);
                         }
                     }
                     break;
@@ -346,18 +351,20 @@ public class CustomerMenu {
                             System.out.println("\n--- Contacts for " + custName + " ---");
                             DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
-                            System.out.printf("%-4s %-20s %-15s %-25s %-15s %-20s%n", "No.", "Contact Name", "Position", "Email", "Phone", "Created Date");
-                            System.out.println("----------------------------------------------------------------------------------------------------------------");
+                            System.out.printf("%-4s %-20s %-15s %-25s %-15s %-20s %-20s%n",
+                                    "No.", "Contact Name", "Position", "Email", "Phone", "Created Date", "Updated Date");
+                            System.out.println("------------------------------------------------------------------------------------------------------------------------------------");
                             int k = 1;
                             for (CustomerContact con : contacts) {
                                 String d = (con.getCreatedDate() != null) ? con.getCreatedDate().format(fmt) : "N/A";
+                                String u = (con.getUpdatedDate() != null) ? con.getUpdatedDate().format(fmt) : "-";
                                 String em = (con.getEmail() != null) ? con.getEmail() : "N/A";
 
-                                System.out.printf("%-4d %-20s %-15s %-25s %-15s %-20s%n",
+                                System.out.printf("%-4d %-20s %-15s %-25s %-15s %-20s %-20s%n",
                                         k++, con.getContactName(),
                                         (con.getPosition() != null ? con.getPosition() : "N/A"),
                                         em,
-                                        (con.getPhone() != null ? con.getPhone() : "N/A"), d);
+                                        (con.getPhone() != null ? con.getPhone() : "N/A"), d, u);
                             }
                         }
 

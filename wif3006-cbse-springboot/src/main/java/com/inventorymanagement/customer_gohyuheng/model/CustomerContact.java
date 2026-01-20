@@ -2,6 +2,7 @@ package com.inventorymanagement.customer_gohyuheng.model;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.mapping.Document;
 import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
@@ -24,6 +25,9 @@ public class CustomerContact {
 
     @CreatedDate
     private LocalDateTime createdDate;
+    @LastModifiedDate
+    private LocalDateTime updatedDate;
+
 
     // Constructors
     public CustomerContact() {}
@@ -43,4 +47,6 @@ public class CustomerContact {
     public void setCustomerId(String customerId) { this.customerId = customerId; }
     public LocalDateTime getCreatedDate() { return createdDate; }
     public void setCreatedDate(LocalDateTime createdDate) { this.createdDate = createdDate; }
+    public LocalDateTime getUpdatedDate() { return updatedDate; }
+    public void setUpdatedDate(LocalDateTime updatedDate) { this.updatedDate = updatedDate; }
 }

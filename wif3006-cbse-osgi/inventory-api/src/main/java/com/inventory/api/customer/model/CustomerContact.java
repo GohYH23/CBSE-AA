@@ -10,9 +10,11 @@ public class CustomerContact implements Serializable {
     private String phone;
     private String email;
     private String customerId;
-    private String createdDate;
+    private String createdAt;
+    private String editedAt;
 
     public CustomerContact() {
+        this.createdAt = LocalDateTime.now().toString();
     }
 
     public CustomerContact(String contactName, String position, String phone, String email, String customerId) {
@@ -21,7 +23,7 @@ public class CustomerContact implements Serializable {
         this.phone = phone;
         this.email = email;
         this.customerId = customerId;
-        this.createdDate = LocalDateTime.now().toString();
+        this.createdAt = LocalDateTime.now().toString();
     }
 
     public String getId() { return id; }
@@ -42,6 +44,9 @@ public class CustomerContact implements Serializable {
     public String getCustomerId() { return customerId; }
     public void setCustomerId(String customerId) { this.customerId = customerId; }
 
-    public String getCreatedDate() { return createdDate; }
-    public void setCreatedDate(String createdDate) { this.createdDate = createdDate; }
+    public String getCreatedAt() { return createdAt; }
+    public void setCreatedAt(String createdDate) { this.createdAt = createdDate; }
+
+    public String getEditedAt() { return editedAt; }
+    public void setEditedAt(String editedDate) { this.editedAt = editedDate; }
 }

@@ -84,6 +84,9 @@ public class Launcher {
             infrastructureBundles.add(libDir + "org.osgi.util.promise-1.2.0.jar");
             infrastructureBundles.add(libDir + "org.osgi.service.component-1.5.0.jar");
             infrastructureBundles.add(libDir + "org.apache.felix.scr-2.2.6.jar");
+            infrastructureBundles.add(libDir + "bson-4.10.2.jar");
+            infrastructureBundles.add(libDir + "mongodb-driver-core-4.10.2.jar");
+            infrastructureBundles.add(libDir + "mongodb-driver-sync-4.10.2.jar");
 
             // B. Project Bundles (Your Code)
             projectBundles.add(rootPath + "inventory-api/target/inventory-api-1.0.0.jar");

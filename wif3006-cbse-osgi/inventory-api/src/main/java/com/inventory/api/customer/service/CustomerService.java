@@ -36,7 +36,6 @@ public interface CustomerService {
     void updateGroup(CustomerGroup group);
 
     // Returns a String message (e.g., "Cannot delete, in use")
-    // to match your Menu logic
     String deleteGroup(String id);
 
     // ================= CATEGORIES =================

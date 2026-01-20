@@ -9,19 +9,12 @@
     <packaging>pom</packaging>
 
     <modules>
-<!--        <module>inventory-api</module>-->
-<!--        <module>customer-bundle</module>-->
-<!--        <module>sales-bundle</module>-->
-<!--        <module>product-bundle</module>-->
-<!--        <module>purchase-bundle</module>-->
-<!--        <module>vendor-bundle</module>-->
-<!--        <module>osgi-runner</module>-->
         <module>inventory-api</module>
         <module>customer-bundle</module>
         <module>purchase-order-bundle</module>
         <module>sales-order-bundle</module>
         <module>inventory-launcher</module>
-        <module>product-bundle</module>
+        <module>main-bundle</module>
     </modules>
 
     <properties>

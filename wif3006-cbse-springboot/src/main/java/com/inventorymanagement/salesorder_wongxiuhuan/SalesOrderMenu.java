@@ -96,26 +96,27 @@ public class SalesOrderMenu {
             System.out.println("No sales orders found.");
         } else {
             System.out.println("\n--- Sales Order List ---");
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
-            System.out.printf("%-15s %-12s %-20s %-12s %-15s %-35s%n",
-                    "Order Number", "Order Date", "Customer", "Tax (%)", "Status", "Description");
-            System.out.println("---------------------------------------------------------------------------------------------------------------------");
+            System.out.printf("%-15s %-12s %-20s %-12s %-15s %-20s %-20s%n",
+                    "Order Number", "Order Date", "Customer", "Tax (%)", "Status", "Created Date", "Updated Date");
+            System.out.println("-------------------------------------------------------------------------------------------------------------------------------");
 
             for (SalesOrder order : orders) {
-                String orderDate = (order.getOrderDate() != null) ? order.getOrderDate().format(formatter) : "N/A";
+                String orderDate = (order.getOrderDate() != null) ? order.getOrderDate().toString() : "N/A";
                 String customer = salesOrderService.getCustomerNameById(order.getCustomerId());
                 String taxRate = (order.getTaxId() != null) ? salesOrderService.getTaxRateById(order.getTaxId()).toString() : "0";
-                String description = (order.getDescription() != null && !order.getDescription().isEmpty()) 
-                        ? order.getDescription() : "N/A";
+                String createdDate = (order.getCreatedDate() != null) ? order.getCreatedDate().format(formatter) : "N/A";
+                String updatedDate = (order.getUpdatedDate() != null) ? order.getUpdatedDate().format(formatter) : "-";
 
-                System.out.printf("%-15s %-12s %-20s %-12s %-15s %-35s%n",
+                System.out.printf("%-15s %-12s %-20s %-12s %-15s %-20s %-20s%n",
                         order.getOrderNumber(),
                         orderDate,
                         customer,
                         taxRate,
                         order.getOrderStatus(),
-                        description);
+                        createdDate,
+                        updatedDate);
             }
         }
     }
@@ -570,24 +571,25 @@ public class SalesOrderMenu {
             System.out.println("No delivery orders found.");
         } else {
             System.out.println("\n--- Delivery Order List ---");
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
-            System.out.printf("%-18s %-15s %-18s %-15s %-35s%n",
-                    "Delivery Number", "Delivery Date", "Sales Order", "Status", "Description");
-            System.out.println("----------------------------------------------------------------------------------------------------");
+            System.out.printf("%-18s %-15s %-18s %-15s %-20s %-20s%n",
+                    "Delivery Number", "Delivery Date", "Sales Order", "Status", "Created Date", "Updated Date");
+            System.out.println("---------------------------------------------------------------------------------------------------------------------------");
 
             for (DeliveryOrder order : orders) {
-                String deliveryDate = (order.getDeliveryDate() != null) ? order.getDeliveryDate().format(formatter) : "N/A";
+                String deliveryDate = (order.getDeliveryDate() != null) ? order.getDeliveryDate().toString() : "N/A";
                 String salesOrderNum = salesOrderService.getSalesOrderNumberById(order.getSalesOrderId());
-                String description = (order.getDescription() != null && !order.getDescription().isEmpty()) 
-                        ? order.getDescription() : "N/A";
+                String createdDate = (order.getCreatedDate() != null) ? order.getCreatedDate().format(formatter) : "N/A";
+                String updatedDate = (order.getUpdatedDate() != null) ? order.getUpdatedDate().format(formatter) : "-";
 
-                System.out.printf("%-18s %-15s %-18s %-15s %-35s%n",
+                System.out.printf("%-18s %-15s %-18s %-15s %-20s %-20s%n",
                         order.getDeliveryNumber(),
                         deliveryDate,
                         salesOrderNum,
                         order.getStatus(),
-                        description);
+                        createdDate,
+                        updatedDate);
             }
         }
     }
@@ -725,24 +727,25 @@ public class SalesOrderMenu {
             System.out.println("No sales returns found.");
         } else {
             System.out.println("\n--- Sales Return List ---");
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
-            System.out.printf("%-15s %-13s %-18s %-15s %-35s%n",
-                    "Return Number", "Return Date", "Delivery Order", "Status", "Description");
-            System.out.println("------------------------------------------------------------------------------------------------");
+            System.out.printf("%-15s %-13s %-18s %-15s %-20s %-20s%n",
+                    "Return Number", "Return Date", "Delivery Order", "Status", "Created Date", "Updated Date");
+            System.out.println("-----------------------------------------------------------------------------------------------------------------");
 
             for (SalesReturn returnOrder : returns) {
-                String returnDate = (returnOrder.getReturnDate() != null) ? returnOrder.getReturnDate().format(formatter) : "N/A";
+                String returnDate = (returnOrder.getReturnDate() != null) ? returnOrder.getReturnDate().toString() : "N/A";
                 String deliveryNum = salesOrderService.getDeliveryOrderNumberById(returnOrder.getDeliveryOrderId());
-                String description = (returnOrder.getDescription() != null && !returnOrder.getDescription().isEmpty()) 
-                        ? returnOrder.getDescription() : "N/A";
+                String createdDate = (returnOrder.getCreatedDate() != null) ? returnOrder.getCreatedDate().format(formatter) : "N/A";
+                String updatedDate = (returnOrder.getUpdatedDate() != null) ? returnOrder.getUpdatedDate().format(formatter) : "-";
 
-                System.out.printf("%-15s %-13s %-18s %-15s %-35s%n",
+                System.out.printf("%-15s %-13s %-18s %-15s %-20s %-20s%n",
                         returnOrder.getReturnNumber(),
                         returnDate,
                         deliveryNum,
                         returnOrder.getStatus(),
-                        description);
+                        createdDate,
+                        updatedDate);
             }
         }
     }

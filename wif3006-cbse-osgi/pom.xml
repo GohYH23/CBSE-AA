@@ -21,6 +21,7 @@
         <module>purchase-order-bundle</module>
         <module>sales-order-bundle</module>
         <module>inventory-launcher</module>
+        <module>product-bundle</module>
     </modules>
 
     <properties>

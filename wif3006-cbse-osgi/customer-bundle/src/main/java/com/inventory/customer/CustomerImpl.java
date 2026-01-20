@@ -3,6 +3,7 @@ package com.inventory.customer;
 import com.inventory.api.customer.CustomerService;
 import com.inventory.api.purchaseorder.PurchaseOrderService;
 import com.inventory.api.salesorder.SalesOrderService;
+import com.inventory.api.product.ProductService;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
@@ -24,6 +25,7 @@ public class CustomerImpl implements CustomerService {
     private boolean running = true;
     private PurchaseOrderService purchaseOrderService;
     private SalesOrderService salesOrderService;
+    private ProductService productService;
 
     @Activate
     public void activate() {
@@ -100,8 +102,9 @@ public class CustomerImpl implements CustomerService {
             System.out.println("5. Manage Purchase Return");
             System.out.println("6. Manage Sales Order");     
             System.out.println("7. Manage Delivery Order");  
-            System.out.println("8. Manage Sales Return");    
-            System.out.println("9. Exit System");
+            System.out.println("8. Manage Sales Return");
+            System.out.println("9. Manage Products");
+            System.out.println("10. Exit System");
             System.out.print("Select: ");
 
             try {
@@ -207,6 +210,13 @@ public class CustomerImpl implements CustomerService {
                         }
                         break;
                     case "9":
+                        if (productService != null) {
+                            productService.showMenu(scanner);
+                        } else {
+                            System.out.println("⚠️ Product Service is not available yet.");
+                        }
+                        break;
+                    case "10":
                         System.out.println("Exiting...");
                         running = false;
                         System.exit(0);
@@ -243,5 +253,21 @@ public class CustomerImpl implements CustomerService {
     protected void unbindSalesOrderService(SalesOrderService service) {
         this.salesOrderService = null;
         System.out.println("   ❌ Sales Order Service unbound from Customer Menu");
+    }
+
+    // --- Added Product Service Binding ---
+    @Reference(
+            cardinality = ReferenceCardinality.OPTIONAL,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "unbindProductService"
+    )
+    protected void bindProductService(ProductService service) {
+        this.productService = service;
+        System.out.println("   ✅ Product Service bound to Customer Menu");
+    }
+
+    protected void unbindProductService(ProductService service) {
+        this.productService = null;
+        System.out.println("   ❌ Product Service unbound from Customer Menu");
     }
 }

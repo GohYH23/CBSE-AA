@@ -130,11 +130,25 @@ public class ProductServiceImpl implements ProductService {
                     .append("name", g.getGroupName()).append("desc", g.getDescription()));
         }
     }
+
+    @Override
+    public void updateProductGroup(ProductGroup g) { // <--- NEW METHOD
+        MongoCollection<Document> col = getCollection("product_groups");
+        if (col != null) {
+            col.updateOne(Filters.eq("id", g.getGroupId()),
+                    Updates.combine(
+                            Updates.set("name", g.getGroupName()),
+                            Updates.set("desc", g.getDescription())
+                    ));
+        }
+    }
+
     @Override
     public void deleteProductGroup(String id) {
         MongoCollection<Document> col = getCollection("product_groups");
         if (col != null) col.deleteOne(Filters.eq("id", id));
     }
+
     @Override
     public List<ProductGroup> getAllProductGroups() {
         List<ProductGroup> list = new ArrayList<>();
@@ -156,11 +170,25 @@ public class ProductServiceImpl implements ProductService {
                     .append("name", u.getUnitName()).append("symbol", u.getSymbol()));
         }
     }
+
+    @Override
+    public void updateUnitMeasure(UnitMeasure u) { // <--- NEW METHOD
+        MongoCollection<Document> col = getCollection("unit_measures");
+        if (col != null) {
+            col.updateOne(Filters.eq("id", u.getUomId()),
+                    Updates.combine(
+                            Updates.set("name", u.getUnitName()),
+                            Updates.set("symbol", u.getSymbol())
+                    ));
+        }
+    }
+
     @Override
     public void deleteUnitMeasure(String id) {
         MongoCollection<Document> col = getCollection("unit_measures");
         if (col != null) col.deleteOne(Filters.eq("id", id));
     }
+
     @Override
     public List<UnitMeasure> getAllUnitMeasures() {
         List<UnitMeasure> list = new ArrayList<>();
@@ -182,11 +210,25 @@ public class ProductServiceImpl implements ProductService {
                     .append("isSystem", w.isSystemWarehouse()).append("desc", w.getDescription()));
         }
     }
+
+    @Override
+    public void updateWarehouse(Warehouse w) { // <--- NEW METHOD
+        MongoCollection<Document> col = getCollection("warehouses");
+        if (col != null) {
+            col.updateOne(Filters.eq("name", w.getName()),
+                    Updates.combine(
+                            Updates.set("desc", w.getDescription()),
+                            Updates.set("isSystem", w.isSystemWarehouse())
+                    ));
+        }
+    }
+
     @Override
     public void deleteWarehouse(String name) {
         MongoCollection<Document> col = getCollection("warehouses");
         if (col != null) col.deleteOne(Filters.eq("name", name));
     }
+
     @Override
     public List<Warehouse> getAllWarehouses() {
         List<Warehouse> list = new ArrayList<>();

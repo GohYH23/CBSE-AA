@@ -1,4 +1,4 @@
-package com.inventory.api.purchaseorder;
+package com.inventory.api.purchaseorder.model;
 
 import java.io.Serializable;
 

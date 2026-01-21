@@ -1,8 +1,11 @@
+// Name: Ooi Wei Ying
+// Student ID: 22056924
+
 package com.inventory.purchaseorder;
 
-import com.inventory.api.purchaseorder.PurchaseOrder;
-import com.inventory.api.purchaseorder.PurchaseOrderService;
-import com.inventory.api.purchaseorder.OrderItem;
+import com.inventory.api.purchaseorder.model.PurchaseOrder;
+import com.inventory.api.purchaseorder.service.PurchaseOrderService;
+import com.inventory.api.purchaseorder.model.OrderItem;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;

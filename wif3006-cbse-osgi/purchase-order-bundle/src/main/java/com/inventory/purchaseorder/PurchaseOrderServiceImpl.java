@@ -1,203 +1,332 @@
+// Name: Ooi Wei Ying
+// Student ID: 22056924
+
 package com.inventory.purchaseorder;
 
-import com.inventory.api.purchaseorder.PurchaseOrder;
-import com.inventory.api.purchaseorder.PurchaseOrderService;
-import com.inventory.api.purchaseorder.OrderItem;
+import com.inventory.api.purchaseorder.model.PurchaseOrder;
+import com.inventory.api.purchaseorder.service.PurchaseOrderService;
+import com.inventory.api.purchaseorder.model.OrderItem;
+import org.bson.Document;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
 
-import java.util.Scanner;
-import java.util.stream.Collectors;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Updates;
 
-import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.Scanner;
+import java.util.stream.Collectors;
 
 @Component(service = PurchaseOrderService.class, immediate = true)
 public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     
     private PurchaseOrderMenu currentMenu;
     
-    private static final String DATA_DIR = "data";
-    private static final String DATA_FILE = "purchase-orders.dat";
-    private final List<PurchaseOrder> purchaseOrders = new ArrayList<>();
-    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-    private File dataFile;
+    private MongoClient mongoClient;
+    private MongoDatabase database;
+    private MongoCollection<Document> purchaseOrderCollection;
     
     @Activate
     public void activate() {
         System.out.println("✅ Purchase Order Component Started.");
-        
-        // Create data directory if it doesn't exist
         try {
-            Path dataDir = Paths.get(DATA_DIR);
-            if (!Files.exists(dataDir)) {
-                Files.createDirectories(dataDir);
+            String uri = System.getProperty("mongodb.uri");
+            if (uri == null || uri.isEmpty()) {
+                System.err.println("❌ Error: mongodb.uri not found in System Properties.");
+                return;
             }
             
-            dataFile = new File(DATA_DIR, DATA_FILE);
+            mongoClient = MongoClients.create(uri);
+            database = mongoClient.getDatabase("inventory_db_osgi");
+            purchaseOrderCollection = database.getCollection("purchase_orders");
             
-            // Load existing data
-            loadPurchaseOrders();
-            
-            System.out.println("   Loaded " + purchaseOrders.size() + " purchase order(s) from storage.");
+            System.out.println("   ✅ Connected to MongoDB: inventory_db_osgi");
+            System.out.println("   Loaded " + purchaseOrderCollection.countDocuments() + " purchase order(s) from database.");
         } catch (Exception e) {
-            System.err.println("   ⚠️ Warning: Could not initialize data storage: " + e.getMessage());
-            System.err.println("   Starting with empty purchase order list.");
+            System.err.println("   ❌ MongoDB Connection Failed: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     
     @Deactivate
     public void deactivate() {
         System.out.println("❌ Stopping Purchase Order Component...");
-        savePurchaseOrders(); // Save on shutdown
+        if (mongoClient != null) {
+            mongoClient.close();
+        }
     }
+    
+    // =================== DOCUMENT MAPPING METHODS ===================
+    
+    private PurchaseOrder mapToPurchaseOrder(Document doc) {
+        if (doc == null) return null;
+        
+        PurchaseOrder po = new PurchaseOrder();
+        po.setOrderId(doc.getInteger("orderId", 0));
+        
+        String orderDateStr = doc.getString("orderDate");
+        if (orderDateStr != null && !orderDateStr.isEmpty()) {
+            po.setOrderDate(LocalDate.parse(orderDateStr));
+        }
+        
+        po.setOrderNumber(doc.getString("orderNumber"));
+        po.setVendor(doc.getString("vendor"));
+        po.setOrderStatus(doc.getString("orderStatus"));
+        
+        String receivedDateStr = doc.getString("receivedDate");
+        if (receivedDateStr != null && !receivedDateStr.isEmpty()) {
+            po.setReceivedDate(LocalDate.parse(receivedDateStr));
+        }
+        
+        String returnedDateStr = doc.getString("returnedDate");
+        if (returnedDateStr != null && !returnedDateStr.isEmpty()) {
+            po.setReturnedDate(LocalDate.parse(returnedDateStr));
+        }
+        
+        String shippingDateStr = doc.getString("shippingDate");
+        if (shippingDateStr != null && !shippingDateStr.isEmpty()) {
+            po.setShippingDate(LocalDate.parse(shippingDateStr));
+        }
+        
+        String cancelledDateStr = doc.getString("cancelledDate");
+        if (cancelledDateStr != null && !cancelledDateStr.isEmpty()) {
+            po.setCancelledDate(LocalDate.parse(cancelledDateStr));
+        }
+        
+        // Map OrderItems (nested documents)
+        @SuppressWarnings("unchecked")
+        List<Document> itemsDocs = (List<Document>) doc.get("orderItems");
+        List<OrderItem> orderItems = new ArrayList<>();
+        if (itemsDocs != null) {
+            for (Document itemDoc : itemsDocs) {
+                OrderItem item = new OrderItem(
+                    itemDoc.getString("itemName"),
+                    itemDoc.getInteger("quantity", 0),
+                    itemDoc.getDouble("pricePerItem")
+                );
+                orderItems.add(item);
+            }
+        }
+        po.setOrderItems(orderItems);
+        
+        return po;
+    }
+    
+    private Document mapFromPurchaseOrder(PurchaseOrder po) {
+        Document doc = new Document()
+            .append("orderId", po.getOrderId())
+            .append("orderDate", po.getOrderDate() != null ? po.getOrderDate().toString() : null)
+            .append("orderNumber", po.getOrderNumber())
+            .append("vendor", po.getVendor())
+            .append("orderStatus", po.getOrderStatus())
+            .append("receivedDate", po.getReceivedDate() != null ? po.getReceivedDate().toString() : null)
+            .append("returnedDate", po.getReturnedDate() != null ? po.getReturnedDate().toString() : null)
+            .append("shippingDate", po.getShippingDate() != null ? po.getShippingDate().toString() : null)
+            .append("cancelledDate", po.getCancelledDate() != null ? po.getCancelledDate().toString() : null);
+        
+        // Map OrderItems as nested documents
+        List<Document> itemsDocs = new ArrayList<>();
+        if (po.getOrderItems() != null) {
+            for (OrderItem item : po.getOrderItems()) {
+                Document itemDoc = new Document()
+                    .append("itemName", item.getItemName())
+                    .append("quantity", item.getQuantity())
+                    .append("pricePerItem", item.getPricePerItem());
+                itemsDocs.add(itemDoc);
+            }
+        }
+        doc.append("orderItems", itemsDocs);
+        
+        return doc;
+    }
+    
+    // =================== SERVICE IMPLEMENTATION ===================
     
     @Override
     public List<PurchaseOrder> getAllPurchaseOrders() {
-        lock.readLock().lock();
-        try {
-            return new ArrayList<>(purchaseOrders);
-        } finally {
-            lock.readLock().unlock();
+        List<PurchaseOrder> orders = new ArrayList<>();
+        if (purchaseOrderCollection == null) return orders;
+        
+        for (Document doc : purchaseOrderCollection.find()) {
+            orders.add(mapToPurchaseOrder(doc));
         }
+        return orders;
     }
     
     @Override
     public PurchaseOrder getPurchaseOrderById(int orderId) {
-        lock.readLock().lock();
-        try {
-            return purchaseOrders.stream()
-                .filter(po -> po.getOrderId() == orderId)
-                .findFirst()
-                .orElse(null);
-        } finally {
-            lock.readLock().unlock();
-        }
+        if (purchaseOrderCollection == null) return null;
+        
+        Document doc = purchaseOrderCollection.find(Filters.eq("orderId", orderId)).first();
+        return mapToPurchaseOrder(doc);
     }
     
     @Override
     public PurchaseOrder addPurchaseOrder(PurchaseOrder purchaseOrder) {
-        lock.writeLock().lock();
-        try {
-            // Generate ID if not set
-            if (purchaseOrder.getOrderId() == 0) {
-                purchaseOrder.setOrderId(getNextOrderId());
-            }
-            
-            purchaseOrders.add(purchaseOrder);
-            savePurchaseOrders();
-            return purchaseOrder;
-        } finally {
-            lock.writeLock().unlock();
+        if (purchaseOrderCollection == null) return null;
+        
+        // Generate ID if not set
+        if (purchaseOrder.getOrderId() == 0) {
+            purchaseOrder.setOrderId(getNextOrderId());
         }
+        
+        // Auto-generate order number if not set
+        if (purchaseOrder.getOrderNumber() == null || purchaseOrder.getOrderNumber().isEmpty()) {
+            purchaseOrder.setOrderNumber(String.format("PO-%03d", purchaseOrder.getOrderId()));
+        }
+        
+        Document doc = mapFromPurchaseOrder(purchaseOrder);
+        purchaseOrderCollection.insertOne(doc);
+        return purchaseOrder;
     }
     
     @Override
     public PurchaseOrder updatePurchaseOrder(int orderId, PurchaseOrder updatedOrder) {
-        lock.writeLock().lock();
-        try {
-            for (int i = 0; i < purchaseOrders.size(); i++) {
-                if (purchaseOrders.get(i).getOrderId() == orderId) {
-                    PurchaseOrder existingOrder = purchaseOrders.get(i);
-                    updatedOrder.setOrderId(orderId); // Ensure ID matches
-                    
-                    // Handle received date: set when status changes to "received"
-                    if (updatedOrder.getOrderStatus().equalsIgnoreCase("received")) {
-                        if (existingOrder.getOrderStatus().equalsIgnoreCase("received")) {
-                            // Already received - keep existing received date
-                            updatedOrder.setReceivedDate(existingOrder.getReceivedDate());
-                        } else {
-                            // Status changed to received - set received date to today
-                            updatedOrder.setReceivedDate(LocalDate.now());
-                        }
-                        // Clear returned date when status changes to received
-                        updatedOrder.setReturnedDate(null);
-                    } else if (updatedOrder.getOrderStatus().equalsIgnoreCase("returned")) {
-                        // Handle returned date: set when status changes to "returned"
-                        if (existingOrder.getOrderStatus().equalsIgnoreCase("returned")) {
-                            // Already returned - keep existing returned date
-                            updatedOrder.setReturnedDate(existingOrder.getReturnedDate());
-                        } else {
-                            // Status changed to returned - set returned date to today
-                            updatedOrder.setReturnedDate(LocalDate.now());
-                        }
-                        // Keep received date if exists
-                        updatedOrder.setReceivedDate(existingOrder.getReceivedDate());
-                    } else {
-                        // Not received or returned - clear both dates
-                        updatedOrder.setReceivedDate(null);
-                        updatedOrder.setReturnedDate(null);
-                    }
-                    
-                    purchaseOrders.set(i, updatedOrder);
-                    savePurchaseOrders();
-                    return updatedOrder;
-                }
-            }
+        if (purchaseOrderCollection == null) return null;
+        
+        PurchaseOrder existingOrder = getPurchaseOrderById(orderId);
+        if (existingOrder == null) {
             return null; // Not found
-        } finally {
-            lock.writeLock().unlock();
         }
+        
+        updatedOrder.setOrderId(orderId); // Ensure ID matches
+        
+        String newStatus = updatedOrder.getOrderStatus().toLowerCase();
+        String oldStatus = existingOrder.getOrderStatus().toLowerCase();
+        
+        // Handle status transitions and date management
+        
+        // 1. Handle received/returned status (from Goods Receive/Return modules)
+        if (newStatus.equals("received")) {
+            if (oldStatus.equals("received")) {
+                updatedOrder.setReceivedDate(existingOrder.getReceivedDate());
+            } else {
+                updatedOrder.setReceivedDate(LocalDate.now());
+            }
+            updatedOrder.setReturnedDate(null);
+            // Keep shipping date if exists
+            updatedOrder.setShippingDate(existingOrder.getShippingDate());
+            updatedOrder.setCancelledDate(existingOrder.getCancelledDate());
+        } else if (newStatus.equals("returned")) {
+            if (oldStatus.equals("returned")) {
+                updatedOrder.setReturnedDate(existingOrder.getReturnedDate());
+            } else {
+                updatedOrder.setReturnedDate(LocalDate.now());
+            }
+            updatedOrder.setReceivedDate(existingOrder.getReceivedDate());
+            // Keep shipping date if exists
+            updatedOrder.setShippingDate(existingOrder.getShippingDate());
+            updatedOrder.setCancelledDate(existingOrder.getCancelledDate());
+        } 
+        // 2. Handle shipping status
+        else if (newStatus.equals("shipping")) {
+            if (!oldStatus.equals("shipping")) {
+                // Status changed to shipping - set shipping date to today
+                updatedOrder.setShippingDate(LocalDate.now());
+            } else {
+                // Already shipping - keep existing shipping date
+                updatedOrder.setShippingDate(existingOrder.getShippingDate());
+            }
+            // Clear cancelled date (can't be cancelled and shipping at same time)
+            updatedOrder.setCancelledDate(null);
+            // Keep received/returned dates if they exist
+            updatedOrder.setReceivedDate(existingOrder.getReceivedDate());
+            updatedOrder.setReturnedDate(existingOrder.getReturnedDate());
+        }
+        // 3. Handle pending status
+        else if (newStatus.equals("pending")) {
+            if (oldStatus.equals("shipping")) {
+                // Changed from shipping to pending - clear shipping date
+                updatedOrder.setShippingDate(null);
+            } else {
+                // Keep existing shipping date if not from shipping
+                updatedOrder.setShippingDate(existingOrder.getShippingDate());
+            }
+            // Clear cancelled date (can't be cancelled and pending at same time)
+            updatedOrder.setCancelledDate(null);
+            // Keep received/returned dates if they exist
+            updatedOrder.setReceivedDate(existingOrder.getReceivedDate());
+            updatedOrder.setReturnedDate(existingOrder.getReturnedDate());
+        }
+        // 4. Handle cancelled status
+        else if (newStatus.equals("cancelled")) {
+            if (!oldStatus.equals("cancelled")) {
+                // Status changed to cancelled - set cancelled date to today
+                updatedOrder.setCancelledDate(LocalDate.now());
+            } else {
+                // Already cancelled - keep existing cancelled date
+                updatedOrder.setCancelledDate(existingOrder.getCancelledDate());
+            }
+            // Clear shipping date (can't be cancelled and shipping at same time)
+            updatedOrder.setShippingDate(null);
+            // Keep received/returned dates if they exist
+            updatedOrder.setReceivedDate(existingOrder.getReceivedDate());
+            updatedOrder.setReturnedDate(existingOrder.getReturnedDate());
+        }
+        // 5. Default case (should not happen, but keep existing dates)
+        else {
+            updatedOrder.setReceivedDate(existingOrder.getReceivedDate());
+            updatedOrder.setReturnedDate(existingOrder.getReturnedDate());
+            updatedOrder.setShippingDate(existingOrder.getShippingDate());
+            updatedOrder.setCancelledDate(existingOrder.getCancelledDate());
+        }
+        
+        Document doc = mapFromPurchaseOrder(updatedOrder);
+        purchaseOrderCollection.replaceOne(Filters.eq("orderId", orderId), doc);
+        return updatedOrder;
     }
     
     // Get purchase orders by status
     public List<PurchaseOrder> getPurchaseOrdersByStatus(String status) {
-        lock.readLock().lock();
-        try {
-            return purchaseOrders.stream()
-                .filter(po -> po.getOrderStatus().equalsIgnoreCase(status))
-                .collect(Collectors.toList());
-        } finally {
-            lock.readLock().unlock();
+        if (purchaseOrderCollection == null) return new ArrayList<>();
+        
+        List<PurchaseOrder> orders = new ArrayList<>();
+        for (Document doc : purchaseOrderCollection.find(Filters.eq("orderStatus", status))) {
+            orders.add(mapToPurchaseOrder(doc));
         }
+        return orders;
     }
     
     @Override
     public boolean deletePurchaseOrder(int orderId) {
-        lock.writeLock().lock();
+        if (purchaseOrderCollection == null) return false;
+        
         try {
-            boolean removed = purchaseOrders.removeIf(po -> po.getOrderId() == orderId);
-            if (removed) {
-                savePurchaseOrders();
-            }
-            return removed;
-        } finally {
-            lock.writeLock().unlock();
+            var result = purchaseOrderCollection.deleteOne(Filters.eq("orderId", orderId));
+            return result.getDeletedCount() > 0;
+        } catch (Exception e) {
+            System.err.println("Error deleting purchase order: " + e.getMessage());
+            return false;
         }
     }
     
     @Override
     public boolean purchaseOrderExists(int orderId) {
-        lock.readLock().lock();
-        try {
-            return purchaseOrders.stream().anyMatch(po -> po.getOrderId() == orderId);
-        } finally {
-            lock.readLock().unlock();
-        }
+        if (purchaseOrderCollection == null) return false;
+        
+        return purchaseOrderCollection.countDocuments(Filters.eq("orderId", orderId)) > 0;
     }
     
     @Override
     public int getNextOrderId() {
-        lock.readLock().lock();
-        try {
-            if (purchaseOrders.isEmpty()) {
-                return 1;
+        if (purchaseOrderCollection == null) return 1;
+        
+        // Find maximum orderId
+        int maxId = 0;
+        for (Document doc : purchaseOrderCollection.find()) {
+            Integer id = doc.getInteger("orderId");
+            if (id != null && id > maxId) {
+                maxId = id;
             }
-            return purchaseOrders.stream()
-                .mapToInt(PurchaseOrder::getOrderId)
-                .max()
-                .orElse(0) + 1;
-        } finally {
-            lock.readLock().unlock();
         }
+        return maxId + 1;
     }
     
     // Method to show menu (called from main menu)
@@ -220,36 +349,5 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     public void showPurchaseReturnMenu(Scanner scanner) {
         PurchaseReturnMenu purchaseReturnMenu = new PurchaseReturnMenu(this, scanner);
         purchaseReturnMenu.showPurchaseReturnMenu();
-    }
-    
-    // --- Persistence Methods ---
-    
-    private void savePurchaseOrders() {
-        if (dataFile == null) return;
-        
-        try (ObjectOutputStream oos = new ObjectOutputStream(
-                new BufferedOutputStream(new FileOutputStream(dataFile)))) {
-            oos.writeObject(purchaseOrders);
-            oos.flush();
-        } catch (IOException e) {
-            System.err.println("   ⚠️ Error saving purchase orders: " + e.getMessage());
-        }
-    }
-    
-    @SuppressWarnings("unchecked")
-    private void loadPurchaseOrders() {
-        if (dataFile == null || !dataFile.exists()) {
-            return;
-        }
-        
-        try (ObjectInputStream ois = new ObjectInputStream(
-                new BufferedInputStream(new FileInputStream(dataFile)))) {
-            List<PurchaseOrder> loaded = (List<PurchaseOrder>) ois.readObject();
-            purchaseOrders.clear();
-            purchaseOrders.addAll(loaded);
-        } catch (IOException | ClassNotFoundException e) {
-            System.err.println("   ⚠️ Error loading purchase orders: " + e.getMessage());
-            // Continue with empty list
-        }
     }
 }

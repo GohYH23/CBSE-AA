@@ -1,5 +1,6 @@
-package com.inventory.api.purchaseorder;
+package com.inventory.api.purchaseorder.service;
 
+import com.inventory.api.purchaseorder.model.PurchaseOrder;
 import java.util.List;
 
 public interface PurchaseOrderService {

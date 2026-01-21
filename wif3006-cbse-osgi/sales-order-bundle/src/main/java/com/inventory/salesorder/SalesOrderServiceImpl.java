@@ -5,11 +5,11 @@ import com.inventory.api.salesorder.model.SalesOrder;
 import com.inventory.api.salesorder.model.SalesOrderItem;
 import com.inventory.api.salesorder.model.DeliveryOrder;
 import com.inventory.api.salesorder.model.SalesReturn;
+import com.inventory.api.salesorder.model.Tax;
 import com.inventory.api.customer.service.CustomerService;
 import com.inventory.api.customer.model.Customer;
-// TODO: Uncomment when Product module is ready
-// import com.inventory.api.product.service.ProductService;
-// import com.inventory.api.product.model.Product;
+import com.inventory.api.product.service.ProductService;
+import com.inventory.api.product.model.Product;
 
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
@@ -32,7 +32,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
+import java.util.Date;
 @Component(service = SalesOrderService.class)
 public class SalesOrderServiceImpl implements SalesOrderService {
 
@@ -43,22 +43,22 @@ public class SalesOrderServiceImpl implements SalesOrderService {
     private MongoCollection<Document> salesOrderItemCollection;
     private MongoCollection<Document> deliveryOrderCollection;
     private MongoCollection<Document> salesReturnCollection;
+    private MongoCollection<Document> taxCollection;
 
     // Service References (for cross-module queries)
     @Reference
     private CustomerService customerService;
 
-    // TODO: Uncomment when Product module is ready
-    // @Reference
-    // private ProductService productService;
+    @Reference
+    private ProductService productService;
 
     @Activate
     public void activate() {
-        System.out.println("✅ Sales Order Service: Starting with MANUAL Mapping...");
+        System.out.println("Sales Order Service: Starting with MANUAL Mapping...");
         try {
             String uri = System.getProperty("mongodb.uri");
             if (uri == null || uri.isEmpty()) {
-                System.err.println("❌ Error: mongodb.uri not found in System Properties.");
+                System.err.println("Error: mongodb.uri not found in System Properties.");
                 return;
             }
 
@@ -71,11 +71,12 @@ public class SalesOrderServiceImpl implements SalesOrderService {
             salesOrderItemCollection = database.getCollection("sales_order_items");
             deliveryOrderCollection = database.getCollection("delivery_orders");
             salesReturnCollection = database.getCollection("sales_returns");
+            taxCollection = database.getCollection("taxes");
 
-            System.out.println("✅ Sales Order Service: Database Connected (Manual Mode).");
+            System.out.println("Sales Order Service: Database Connected (Manual Mode).");
 
         } catch (Exception e) {
-            System.err.println("❌ Sales Order Service: Connection Failed.");
+            System.err.println("Sales Order Service: Connection Failed.");
             e.printStackTrace();
         }
     }
@@ -83,7 +84,7 @@ public class SalesOrderServiceImpl implements SalesOrderService {
     @Deactivate
     public void deactivate() {
         if (mongoClient != null) mongoClient.close();
-        System.out.println("🛑 Sales Order Service: Stopped.");
+        System.out.println("Sales Order Service: Stopped.");
     }
 
     // =================== MAPPING HELPERS ===================
@@ -96,9 +97,18 @@ public class SalesOrderServiceImpl implements SalesOrderService {
         order.setOrderNumber(doc.getString("orderNumber"));
         
         // Parse LocalDate from string
-        String orderDateStr = doc.getString("orderDate");
-        if (orderDateStr != null) {
-            order.setOrderDate(LocalDate.parse(orderDateStr));
+        Object orderDateObj = doc.get("orderDate");
+        if (orderDateObj != null) {
+            if (orderDateObj instanceof Date) {
+                // Convert java.util.Date to LocalDate
+                Date date = (Date) orderDateObj;
+                order.setOrderDate(date.toInstant()
+                    .atZone(java.time.ZoneId.systemDefault())
+                    .toLocalDate());
+            } else if (orderDateObj instanceof String) {
+                // Parse String to LocalDate
+                order.setOrderDate(LocalDate.parse((String) orderDateObj));
+            }
         }
         
         order.setCustomerId(doc.getString("customerId"));
@@ -111,7 +121,7 @@ public class SalesOrderServiceImpl implements SalesOrderService {
     }
 
     private Document mapFromSalesOrder(SalesOrder order) {
-        Document doc = new Document()
+        return new Document()
                 .append("orderNumber", order.getOrderNumber())
                 .append("orderDate", order.getOrderDate() != null ? order.getOrderDate().toString() : null)
                 .append("customerId", order.getCustomerId())
@@ -120,7 +130,6 @@ public class SalesOrderServiceImpl implements SalesOrderService {
                 .append("description", order.getDescription())
                 .append("createdAt", order.getCreatedAt())
                 .append("editedAt", order.getEditedAt());
-        return doc;
     }
 
     // --- SALES ORDER ITEM MAPPING ---
@@ -221,6 +230,38 @@ public class SalesOrderServiceImpl implements SalesOrderService {
                 .append("editedAt", salesReturn.getEditedAt());
     }
 
+    // --- TAX MAPPING ---
+    private Tax mapToTax(Document doc) {
+        if (doc == null) return null;
+        Tax tax = new Tax();
+        tax.setId(doc.get("_id").toString());
+        tax.setTaxName(doc.getString("taxName"));
+    
+        // Parse BigDecimal for taxRate
+        Object taxRateObj = doc.get("taxRate");
+        if (taxRateObj != null) {
+            if (taxRateObj instanceof Double) {
+                tax.setTaxRate(BigDecimal.valueOf((Double) taxRateObj));
+            } else if (taxRateObj instanceof String) {
+                tax.setTaxRate(new BigDecimal((String) taxRateObj));
+            }
+        }
+    
+        tax.setDescription(doc.getString("description"));
+        tax.setCreatedAt(doc.getString("createdAt"));
+        tax.setEditedAt(doc.getString("editedAt"));
+        return tax;
+    }
+
+    private Document mapFromTax(Tax tax) {
+        return new Document()
+                .append("taxName", tax.getTaxName())
+                .append("taxRate", tax.getTaxRate() != null ? tax.getTaxRate().toString() : null)
+                .append("description", tax.getDescription())
+                .append("createdAt", tax.getCreatedAt())
+                .append("editedAt", tax.getEditedAt());
+    }
+
     // =================== SALES ORDERS IMPLEMENTATION ===================
 
     @Override
@@ -242,8 +283,16 @@ public class SalesOrderServiceImpl implements SalesOrderService {
     @Override
     public List<SalesOrder> getAllSalesOrders() {
         List<SalesOrder> list = new ArrayList<>();
-        for (Document doc : salesOrderCollection.find()) {
-            list.add(mapToSalesOrder(doc));
+        try {
+            int count = 0;
+            for (Document doc : salesOrderCollection.find()) {
+                SalesOrder order = mapToSalesOrder(doc);
+                list.add(order);
+            }
+        } catch (Exception e) {
+            System.err.println("DEBUG SERVICE: Exception in getAllSalesOrders!");
+            e.printStackTrace();
+            throw e;
         }
         return list;
     }
@@ -457,7 +506,7 @@ public class SalesOrderServiceImpl implements SalesOrderService {
         } catch (Exception e) {
             return "Error: " + e.getMessage();
         }
-    }
+    }    
 
     // =================== HELPER METHODS ===================
 
@@ -475,38 +524,44 @@ public class SalesOrderServiceImpl implements SalesOrderService {
         return customer.map(Customer::getId).orElse(null);
     }
 
-    // TODO: Uncomment when Product module is ready
     @Override
     public String getProductNameById(String productId) {
-        // Temporary implementation until Product service is available
-        if (productId == null) return "Unknown";
-        return "Product-" + productId.substring(0, Math.min(8, productId.length()));
-        
-        // TODO: Replace with actual implementation:
-        // if (productId == null || productService == null) return "Unknown";
-        // Optional<Product> product = productService.getProductById(productId);
-        // return product.map(Product::getProductName).orElse("Unknown");
+        if (productId == null || productService == null) return "Unknown";
+        Product product = productService.getProduct(productId);
+        return product != null ? product.getName() : "Unknown";
     }
 
-    // TODO: Uncomment when Product module is ready
     @Override
     public String getProductIdByName(String productName) {
-        // Temporary implementation until Product service is available
-        System.out.println("⚠️ Warning: Product service not available. Product lookup will fail.");
-        return null;
+        if (productName == null || productService == null) return null;
         
-        // TODO: Replace with actual implementation:
-        // if (productName == null || productService == null) return null;
-        // Optional<Product> product = productService.getProductByName(productName);
-        // return product.map(Product::getId).orElse(null);
+        // Search through all products to find matching name
+        List<Product> products = productService.getAllProducts();
+        for (Product product : products) {
+            if (product.getName().equalsIgnoreCase(productName)) {
+                return product.getId();
+            }
+        }
+        return null;
+    }
+
+    public Optional<Tax> getTaxById(String id) {
+        try {
+            Document doc = taxCollection.find(Filters.eq("_id", new ObjectId(id))).first();
+            return Optional.ofNullable(mapToTax(doc));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
     }
 
     @Override
     public BigDecimal getTaxRateById(String taxId) {
-        // TODO: Implement when Tax service is available
-        // For now, return a default value
-        return BigDecimal.valueOf(10); // Default 10%
+        if (taxId == null) return BigDecimal.ZERO;
+    
+        Optional<Tax> tax = getTaxById(taxId);
+        return tax.map(Tax::getTaxRate).orElse(BigDecimal.ZERO);
     }
+
 
     @Override
     public String getSalesOrderNumberById(String id) {
@@ -523,8 +578,7 @@ public class SalesOrderServiceImpl implements SalesOrderService {
     // =================== UTILITY METHODS ===================
 
     private String generateOrderNumber(String prefix) {
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
-        String random = String.format("%04d", (int) (Math.random() * 10000));
-        return prefix + "-" + timestamp + "-" + random;
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+        return prefix + "-" + LocalDateTime.now().format(formatter);
     }
 }

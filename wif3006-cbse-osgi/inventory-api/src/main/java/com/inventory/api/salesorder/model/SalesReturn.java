@@ -9,19 +9,20 @@ public class SalesReturn implements Serializable {
     private String returnNumber;
     private LocalDate returnDate;
     private String deliveryOrderId;
-    private String status;
+    private String status; // PENDING, PROCESSING, COMPLETED, CANCELLED
     private String description;
     private String createdAt;
     private String editedAt;
 
     public SalesReturn() {
         this.createdAt = LocalDateTime.now().toString();
+        this.status = "PENDING";
     }
 
     public SalesReturn(LocalDate returnDate, String deliveryOrderId, String status, String description) {
         this.returnDate = returnDate;
         this.deliveryOrderId = deliveryOrderId;
-        this.status = status;
+        this.status = status != null ? status : "PENDING";
         this.description = description;
         this.createdAt = LocalDateTime.now().toString();
     }

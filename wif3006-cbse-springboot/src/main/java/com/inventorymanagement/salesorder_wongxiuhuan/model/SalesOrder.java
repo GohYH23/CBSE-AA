@@ -7,6 +7,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -30,6 +31,11 @@ public class SalesOrder {
     
     private String description;
     
+    // **ADDED: Amount fields**
+    private BigDecimal beforeTaxAmount;
+    private BigDecimal taxAmount;
+    private BigDecimal afterTaxAmount;
+    
     @CreatedDate
     private LocalDateTime createdDate;
     
@@ -37,7 +43,11 @@ public class SalesOrder {
     private LocalDateTime updatedDate;
 
     // Constructors
-    public SalesOrder() {}
+    public SalesOrder() {
+        this.beforeTaxAmount = BigDecimal.ZERO;
+        this.taxAmount = BigDecimal.ZERO;
+        this.afterTaxAmount = BigDecimal.ZERO;
+    }
 
     public SalesOrder(String id, LocalDate orderDate, String orderNumber, String customerId, 
                       String taxId, String orderStatus, String description) {
@@ -48,6 +58,9 @@ public class SalesOrder {
         this.taxId = taxId;
         this.orderStatus = orderStatus;
         this.description = description;
+        this.beforeTaxAmount = BigDecimal.ZERO;
+        this.taxAmount = BigDecimal.ZERO;
+        this.afterTaxAmount = BigDecimal.ZERO;
     }
 
     // Getters and Setters
@@ -72,6 +85,16 @@ public class SalesOrder {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
+    // **ADDED: Amount getters and setters**
+    public BigDecimal getBeforeTaxAmount() { return beforeTaxAmount; }
+    public void setBeforeTaxAmount(BigDecimal beforeTaxAmount) { this.beforeTaxAmount = beforeTaxAmount; }
+
+    public BigDecimal getTaxAmount() { return taxAmount; }
+    public void setTaxAmount(BigDecimal taxAmount) { this.taxAmount = taxAmount; }
+
+    public BigDecimal getAfterTaxAmount() { return afterTaxAmount; }
+    public void setAfterTaxAmount(BigDecimal afterTaxAmount) { this.afterTaxAmount = afterTaxAmount; }
+
     public LocalDateTime getCreatedDate() { return createdDate; }
     public void setCreatedDate(LocalDateTime createdDate) { this.createdDate = createdDate; }
 
@@ -80,6 +103,6 @@ public class SalesOrder {
 
     @Override
     public String toString() {
-        return "SalesOrder{id='" + id + "', orderNumber='" + orderNumber + "', created='" + createdDate + "'}";
+        return "SalesOrder{id='" + id + "', orderNumber='" + orderNumber + "', afterTax=" + afterTaxAmount + "}";
     }
 }

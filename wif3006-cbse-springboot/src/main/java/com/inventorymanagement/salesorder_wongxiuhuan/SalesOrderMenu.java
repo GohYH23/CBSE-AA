@@ -98,23 +98,55 @@ public class SalesOrderMenu {
             System.out.println("\n--- Sales Order List ---");
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
-            System.out.printf("%-15s %-12s %-20s %-12s %-15s %-20s %-20s%n",
-                    "Order Number", "Order Date", "Customer", "Tax (%)", "Status", "Created Date", "Updated Date");
-            System.out.println("-------------------------------------------------------------------------------------------------------------------------------");
+            System.out.printf("%-4s %-20s %-12s %-13s %-7s %-11s %-10s %-11s %-12s %-20s %-17s %-17s%n",
+                    "No.", "Order Number", "Order Date", "Customer", "Tax(%)", "Before Tax", "Tax Amt", "After Tax", "Status", "Description", "Created Date", "Updated Date");
+            System.out.println("--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------");
 
+            int i = 1;
             for (SalesOrder order : orders) {
                 String orderDate = (order.getOrderDate() != null) ? order.getOrderDate().toString() : "N/A";
                 String customer = salesOrderService.getCustomerNameById(order.getCustomerId());
-                String taxRate = (order.getTaxId() != null) ? salesOrderService.getTaxRateById(order.getTaxId()).toString() : "0";
+                
+                // Truncate customer name if too long
+                if (customer.length() > 11) {
+                    customer = customer.substring(0, 8) + "...";
+                }
+            
+                String taxRate = "0";
+                if (order.getTaxId() != null && !order.getTaxId().trim().isEmpty()) {
+                    BigDecimal rate = salesOrderService.getTaxRateById(order.getTaxId());
+                    taxRate = (rate != null) ? rate.toString() : "0";
+                }
+            
+                BigDecimal beforeTax = order.getBeforeTaxAmount() != null ? order.getBeforeTaxAmount() : BigDecimal.ZERO;
+                BigDecimal taxAmt = order.getTaxAmount() != null ? order.getTaxAmount() : BigDecimal.ZERO;
+                BigDecimal afterTax = order.getAfterTaxAmount() != null ? order.getAfterTaxAmount() : BigDecimal.ZERO;
+            
                 String createdDate = (order.getCreatedDate() != null) ? order.getCreatedDate().format(formatter) : "N/A";
                 String updatedDate = (order.getUpdatedDate() != null) ? order.getUpdatedDate().format(formatter) : "-";
 
-                System.out.printf("%-15s %-12s %-20s %-12s %-15s %-20s %-20s%n",
+                String beforeTaxStr = String.format("%.2f", beforeTax);
+                String taxAmtStr = String.format("%.2f", taxAmt);
+                String afterTaxStr = String.format("%.2f", afterTax);
+                
+                // Truncate description if too long
+                String description = (order.getDescription() != null && !order.getDescription().isEmpty()) 
+                        ? order.getDescription() : "N/A";
+                if (description.length() > 18) {
+                    description = description.substring(0, 15) + "...";
+                }
+
+                System.out.printf("%-4d %-20s %-12s %-13s %-7s %-11s %-10s %-11s %-12s %-20s %-17s %-17s%n",
+                        i++,
                         order.getOrderNumber(),
                         orderDate,
                         customer,
                         taxRate,
+                        beforeTaxStr,
+                        taxAmtStr,
+                        afterTaxStr,
                         order.getOrderStatus(),
+                        description,
                         createdDate,
                         updatedDate);
             }
@@ -130,7 +162,7 @@ public class SalesOrderMenu {
         try {
             orderDate = LocalDate.parse(dateStr, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         } catch (DateTimeParseException e) {
-            System.out.println("❌ Invalid date format. Using today's date.");
+            System.out.println("Invalid date format. Using today's date.");
             orderDate = LocalDate.now();
         }
 
@@ -138,13 +170,33 @@ public class SalesOrderMenu {
         String customerName = scanner.nextLine();
         String customerId = salesOrderService.getCustomerIdByName(customerName);
         if (customerId == null) {
-            System.out.println("❌ Customer not found. Please create customer first.");
+            System.out.println("Customer not found. Please create customer first.");
             return;
         }
 
-        System.out.print("Enter Tax ID (or press Enter to skip): ");
-        String taxIdStr = scanner.nextLine();
-        String taxId = taxIdStr.trim().isEmpty() ? null : taxIdStr;
+        List<Tax> taxes = salesOrderService.getAllTaxes();
+        System.out.println("\nAvailable Taxes:");
+        System.out.println("0. No Tax");
+        for (int i = 0; i < taxes.size(); i++) {
+            System.out.println((i + 1) + ". " + taxes.get(i).getTaxName() + 
+                            " - " + taxes.get(i).getTaxRate() + "%");
+        }
+
+        System.out.print("Select tax (enter number): ");
+        int taxChoice;
+        try {
+            taxChoice = Integer.parseInt(scanner.nextLine());
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid input. No tax will be applied.");
+            taxChoice = 0;
+        }
+
+        String taxId = null;
+        if (taxChoice > 0 && taxChoice <= taxes.size()) {
+            Tax selectedTax = taxes.get(taxChoice - 1);
+            taxId = selectedTax.getId();
+            System.out.println("Selected: " + selectedTax.getTaxName() + " (" + selectedTax.getTaxRate() + "%)");
+        }
 
         System.out.print("Enter Order Status (PENDING/CONFIRMED/PROCESSING/COMPLETED/CANCELLED): ");
         String status = scanner.nextLine();
@@ -160,7 +212,7 @@ public class SalesOrderMenu {
         order.setDescription(description);
 
         SalesOrder created = salesOrderService.createSalesOrder(order);
-        System.out.println("✅ Sales Order Created! Order Number: " + created.getOrderNumber());
+        System.out.println("Sales Order Created! Order Number: " + created.getOrderNumber());
         System.out.println("You can now add items to this order from 'Manage Sales Order Items' menu.");
     }
 
@@ -170,7 +222,7 @@ public class SalesOrderMenu {
         Optional<SalesOrder> orderOpt = salesOrderService.getSalesOrderByNumber(orderNumber);
 
         if (orderOpt.isEmpty()) {
-            System.out.println("❌ Sales Order not found.");
+            System.out.println("Sales Order not found.");
             return;
         }
 
@@ -184,7 +236,7 @@ public class SalesOrderMenu {
             try {
                 order.setOrderDate(LocalDate.parse(dateInput, DateTimeFormatter.ofPattern("yyyy-MM-dd")));
             } catch (DateTimeParseException e) {
-                System.out.println("⚠️ Invalid date format. Keeping old date.");
+                System.out.println("Invalid date format. Keeping old date.");
             }
         }
 
@@ -196,7 +248,33 @@ public class SalesOrderMenu {
             if (newCustomerId != null) {
                 order.setCustomerId(newCustomerId);
             } else {
-                System.out.println("⚠️ Customer not found. Keeping old customer.");
+                System.out.println("Customer not found. Keeping old customer.");
+            }
+        }
+
+        List<Tax> taxes = salesOrderService.getAllTaxes();
+        System.out.println("\nAvailable Taxes:");
+        System.out.println("0. No Tax");
+        for (int i = 0; i < taxes.size(); i++) {
+            System.out.println((i + 1) + ". " + taxes.get(i).getTaxName() + 
+                            " - " + taxes.get(i).getTaxRate() + "%");
+        }
+        
+        System.out.print("Select new tax (enter number, or press Enter to keep current): ");
+        String taxInput = scanner.nextLine();
+        if (!taxInput.isEmpty()) {
+            try {
+                int taxChoice = Integer.parseInt(taxInput);
+                if (taxChoice == 0) {
+                    order.setTaxId(null);
+                    System.out.println("Tax removed.");
+                } else if (taxChoice > 0 && taxChoice <= taxes.size()) {
+                    Tax selectedTax = taxes.get(taxChoice - 1);
+                    order.setTaxId(selectedTax.getId());
+                    System.out.println("Selected: " + selectedTax.getTaxName() + " (" + selectedTax.getTaxRate() + "%)");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input. Keeping current tax.");
             }
         }
 
@@ -208,7 +286,7 @@ public class SalesOrderMenu {
                 order.getDescription() != null ? order.getDescription() : ""));
 
         salesOrderService.updateSalesOrder(order);
-        System.out.println("✅ Sales Order updated successfully.");
+        System.out.println("Sales Order updated successfully.");
     }
 
     private void performDeleteSalesOrder(Scanner scanner) {
@@ -217,7 +295,7 @@ public class SalesOrderMenu {
         Optional<SalesOrder> orderOpt = salesOrderService.getSalesOrderByNumber(orderNumber);
 
         if (orderOpt.isEmpty()) {
-            System.out.println("❌ Sales Order not found.");
+            System.out.println("Sales Order not found.");
             return;
         }
 
@@ -238,7 +316,7 @@ public class SalesOrderMenu {
         Optional<SalesOrder> orderOpt = salesOrderService.getSalesOrderByNumber(orderNumber);
 
         if (orderOpt.isEmpty()) {
-            System.out.println("❌ Sales Order not found.");
+            System.out.println("Sales Order not found.");
             return;
         }
 
@@ -283,26 +361,32 @@ public class SalesOrderMenu {
             System.out.println("No items found for this order.");
         } else {
             System.out.println("\n--- Sales Order Items ---");
-            System.out.printf("%-4s %-20s %-15s %-12s %-10s %-15s%n",
-                    "No.", "Product", "Product Number", "Unit Price", "Quantity", "Total");
-            System.out.println("------------------------------------------------------------------------------");
+            System.out.printf("%-4s %-20s %-15s %-12s %-10s %-15s %-17s %-17s%n",
+                    "No.", "Product", "Product Number", "Unit Price", "Quantity", "Total", "Created Date", "Updated Date");
+            System.out.println("----------------------------------------------------------------------------------------------------------------------------");
 
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
             int i = 1;
             BigDecimal grandTotal = BigDecimal.ZERO;
             for (SalesOrderItem item : items) {
                 String productName = salesOrderService.getProductNameById(item.getProductId());
                 BigDecimal itemTotal = item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
                 grandTotal = grandTotal.add(itemTotal);
+                
+                String createdDate = (item.getCreatedDate() != null) ? item.getCreatedDate().format(formatter) : "N/A";
+                String updatedDate = (item.getUpdatedDate() != null) ? item.getUpdatedDate().format(formatter) : "-";
 
-                System.out.printf("%-4d %-20s %-15s %-12s %-10d %-15s%n",
+                System.out.printf("%-4d %-20s %-15s %-12s %-10d %-15s %-17s %-17s%n",
                         i++,
                         productName,
                         item.getProductNumber() != null ? item.getProductNumber() : "N/A",
                         item.getUnitPrice(),
                         item.getQuantity(),
-                        itemTotal);
+                        itemTotal,
+                        createdDate,
+                        updatedDate);
             }
-            System.out.println("------------------------------------------------------------------------------");
+            System.out.println("----------------------------------------------------------------------------------------------------------------------------");
             System.out.printf("%-62s %-15s%n", "Grand Total:", grandTotal);
         }
     }
@@ -314,17 +398,25 @@ public class SalesOrderMenu {
         String productName = scanner.nextLine();
         String productId = salesOrderService.getProductIdByName(productName);
         if (productId == null) {
-            System.out.println("❌ Product not found.");
+            System.out.println("Product not found.");
             return;
         }
 
-        System.out.print("Enter Unit Price: ");
-        BigDecimal unitPrice;
-        try {
-            unitPrice = new BigDecimal(scanner.nextLine());
-        } catch (NumberFormatException e) {
-            System.out.println("❌ Invalid price format.");
-            return;
+        BigDecimal productPrice = salesOrderService.getProductPriceById(productId);
+        System.out.println("Product Price (from database): $" + productPrice);
+    
+        System.out.print("Use this price? (Y/N, default Y): ");
+        String usePrice = scanner.nextLine();
+    
+        BigDecimal unitPrice = productPrice;
+        if (usePrice.trim().equalsIgnoreCase("N")) {
+            System.out.print("Enter Custom Unit Price: ");
+            try {
+                unitPrice = new BigDecimal(scanner.nextLine());
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid price format. Using product price: $" + productPrice);
+                unitPrice = productPrice;
+            }
         }
 
         System.out.print("Enter Quantity: ");
@@ -332,7 +424,7 @@ public class SalesOrderMenu {
         try {
             quantity = Integer.parseInt(scanner.nextLine());
         } catch (NumberFormatException e) {
-            System.out.println("❌ Invalid quantity.");
+            System.out.println("Invalid quantity.");
             return;
         }
 
@@ -347,7 +439,7 @@ public class SalesOrderMenu {
         item.setProductNumber(productNumber.trim().isEmpty() ? null : productNumber);
 
         salesOrderService.addSalesOrderItem(item);
-        System.out.println("✅ Item added successfully!");
+        System.out.println("Item added successfully! Order totals will be recalculated.");
     }
 
     private void performEditSalesOrderItem(Scanner scanner, String orderId) {
@@ -363,11 +455,11 @@ public class SalesOrderMenu {
         try {
             itemIndex = Integer.parseInt(scanner.nextLine()) - 1;
             if (itemIndex < 0 || itemIndex >= items.size()) {
-                System.out.println("❌ Invalid item number.");
+                System.out.println("Invalid item number.");
                 return;
             }
         } catch (NumberFormatException e) {
-            System.out.println("❌ Invalid input.");
+            System.out.println("Invalid input.");
             return;
         }
 
@@ -380,7 +472,7 @@ public class SalesOrderMenu {
             try {
                 item.setUnitPrice(new BigDecimal(priceInput));
             } catch (NumberFormatException e) {
-                System.out.println("⚠️ Invalid price. Keeping old value.");
+                System.out.println("Invalid price. Keeping old value.");
             }
         }
 
@@ -390,12 +482,12 @@ public class SalesOrderMenu {
             try {
                 item.setQuantity(Integer.parseInt(qtyInput));
             } catch (NumberFormatException e) {
-                System.out.println("⚠️ Invalid quantity. Keeping old value.");
+                System.out.println("Invalid quantity. Keeping old value.");
             }
         }
 
         salesOrderService.updateSalesOrderItem(item);
-        System.out.println("✅ Item updated successfully!");
+        System.out.println("Item updated successfully!");
     }
 
     private void performDeleteSalesOrderItem(Scanner scanner, String orderId) {
@@ -411,11 +503,11 @@ public class SalesOrderMenu {
         try {
             itemIndex = Integer.parseInt(scanner.nextLine()) - 1;
             if (itemIndex < 0 || itemIndex >= items.size()) {
-                System.out.println("❌ Invalid item number.");
+                System.out.println("Invalid item number.");
                 return;
             }
         } catch (NumberFormatException e) {
-            System.out.println("❌ Invalid input.");
+            System.out.println("Invalid input.");
             return;
         }
 
@@ -424,7 +516,7 @@ public class SalesOrderMenu {
         String confirm = scanner.nextLine();
         if (confirm.equalsIgnoreCase("yes")) {
             salesOrderService.deleteSalesOrderItem(item.getId());
-            System.out.println("✅ Item deleted successfully!");
+            System.out.println("Item deleted successfully!");
         } else {
             System.out.println("Deletion cancelled.");
         }
@@ -483,7 +575,7 @@ public class SalesOrderMenu {
             if (orderOpt.isPresent()) {
                 viewDetailedSalesReport(orderOpt.get());
             } else {
-                System.out.println("❌ Order not found.");
+                System.out.println("Order not found.");
             }
         }
     }
@@ -573,21 +665,31 @@ public class SalesOrderMenu {
             System.out.println("\n--- Delivery Order List ---");
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
-            System.out.printf("%-18s %-15s %-18s %-15s %-20s %-20s%n",
-                    "Delivery Number", "Delivery Date", "Sales Order", "Status", "Created Date", "Updated Date");
-            System.out.println("---------------------------------------------------------------------------------------------------------------------------");
+            System.out.printf("%-4s %-18s %-15s %-18s %-12s %-20s %-17s %-17s%n",
+                    "No.", "Delivery Number", "Delivery Date", "Sales Order", "Status", "Description", "Created Date", "Updated Date");
+            System.out.println("------------------------------------------------------------------------------------------------------------------------------------------------------------");
 
+            int i = 1;
             for (DeliveryOrder order : orders) {
                 String deliveryDate = (order.getDeliveryDate() != null) ? order.getDeliveryDate().toString() : "N/A";
                 String salesOrderNum = salesOrderService.getSalesOrderNumberById(order.getSalesOrderId());
                 String createdDate = (order.getCreatedDate() != null) ? order.getCreatedDate().format(formatter) : "N/A";
                 String updatedDate = (order.getUpdatedDate() != null) ? order.getUpdatedDate().format(formatter) : "-";
+                
+                // Truncate description if too long
+                String description = (order.getDescription() != null && !order.getDescription().isEmpty()) 
+                        ? order.getDescription() : "N/A";
+                if (description.length() > 18) {
+                    description = description.substring(0, 15) + "...";
+                }
 
-                System.out.printf("%-18s %-15s %-18s %-15s %-20s %-20s%n",
+                System.out.printf("%-4d %-18s %-15s %-18s %-12s %-20s %-17s %-17s%n",
+                        i++,
                         order.getDeliveryNumber(),
                         deliveryDate,
                         salesOrderNum,
                         order.getStatus(),
+                        description,
                         createdDate,
                         updatedDate);
             }
@@ -729,21 +831,30 @@ public class SalesOrderMenu {
             System.out.println("\n--- Sales Return List ---");
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
-            System.out.printf("%-15s %-13s %-18s %-15s %-20s %-20s%n",
-                    "Return Number", "Return Date", "Delivery Order", "Status", "Created Date", "Updated Date");
+            System.out.printf("%-4s %-18s %-15s %-18s %-12s %-20s %-17s %-17s%n",
+                    "No.", "Return Number", "Return Date", "Delivery Order", "Status", "Description", "Created Date", "Updated Date");
             System.out.println("-----------------------------------------------------------------------------------------------------------------");
 
+            int i = 1;
             for (SalesReturn returnOrder : returns) {
                 String returnDate = (returnOrder.getReturnDate() != null) ? returnOrder.getReturnDate().toString() : "N/A";
                 String deliveryNum = salesOrderService.getDeliveryOrderNumberById(returnOrder.getDeliveryOrderId());
                 String createdDate = (returnOrder.getCreatedDate() != null) ? returnOrder.getCreatedDate().format(formatter) : "N/A";
                 String updatedDate = (returnOrder.getUpdatedDate() != null) ? returnOrder.getUpdatedDate().format(formatter) : "-";
 
-                System.out.printf("%-15s %-13s %-18s %-15s %-20s %-20s%n",
+                String description = (returnOrder.getDescription() != null && !returnOrder.getDescription().isEmpty()) 
+                        ? returnOrder.getDescription() : "N/A";
+                if (description.length() > 18) {
+                    description = description.substring(0, 15) + "...";
+                }
+                
+                System.out.printf("%-4d %-18s %-15s %-18s %-12s %-20s %-17s %-17s%n",
+                        i++,        
                         returnOrder.getReturnNumber(),
                         returnDate,
                         deliveryNum,
                         returnOrder.getStatus(),
+                        description,
                         createdDate,
                         updatedDate);
             }

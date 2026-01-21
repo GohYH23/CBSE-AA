@@ -1,6 +1,7 @@
 package com.inventorymanagement;
 
 import com.inventorymanagement.customer_gohyuheng.CustomerMenu;
+import com.inventorymanagement.product_ericleechunkiat.ProductMenu;
 import com.inventorymanagement.salesorder_wongxiuhuan.SalesOrderMenu;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -14,12 +15,14 @@ import java.util.Scanner;
 @EnableMongoAuditing
 public class InventoryManagementApplication implements CommandLineRunner {
 
-    // Inject new menu class
     @Autowired
     private CustomerMenu customerMenu;
 
     @Autowired
     private SalesOrderMenu salesOrderMenu;
+
+    @Autowired
+    private ProductMenu productMenu;
 
     public static void main(String[] args) {
         SpringApplication.run(InventoryManagementApplication.class, args);
@@ -57,14 +60,14 @@ public class InventoryManagementApplication implements CommandLineRunner {
                     salesOrderMenu.start(scanner);
                     break;
                 case "4":
-                    System.out.println("This module is not ready yet.");
+                    productMenu.start();
                     break;
                 case "5":
                     System.out.println("This module is not ready yet.");
                     break;
                 case "6":
                     System.out.println("Exiting system...");
-                    System.exit(0); // Fully stops the program as now got added we dependency (latyer try postman)
+                    System.exit(0);
                     break;
                 default:
                     System.out.println("Invalid option. Please try again.");

@@ -1,4 +1,6 @@
-package com.inventory.api.product;
+package com.inventory.api.product.service;
+
+import com.inventory.api.product.model.*;
 
 import java.util.List;
 import java.util.Scanner;

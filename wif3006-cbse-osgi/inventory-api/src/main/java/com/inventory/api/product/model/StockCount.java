@@ -1,4 +1,4 @@
-package com.inventory.api.product;
+package com.inventory.api.product.model;
 import java.io.Serializable;
 
 public class StockCount implements Serializable {

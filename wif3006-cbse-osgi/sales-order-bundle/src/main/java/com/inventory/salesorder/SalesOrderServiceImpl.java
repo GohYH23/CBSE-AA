@@ -115,6 +115,35 @@ public class SalesOrderServiceImpl implements SalesOrderService {
         order.setTaxId(doc.getString("taxId"));
         order.setOrderStatus(doc.getString("orderStatus"));
         order.setDescription(doc.getString("description"));
+        
+        // Parse BigDecimal amounts
+        Object beforeTaxObj = doc.get("beforeTaxAmount");
+        if (beforeTaxObj != null) {
+            if (beforeTaxObj instanceof Double) {
+                order.setBeforeTaxAmount(BigDecimal.valueOf((Double) beforeTaxObj));
+            } else if (beforeTaxObj instanceof String) {
+                order.setBeforeTaxAmount(new BigDecimal((String) beforeTaxObj));
+            }
+        }
+        
+        Object taxAmountObj = doc.get("taxAmount");
+        if (taxAmountObj != null) {
+            if (taxAmountObj instanceof Double) {
+                order.setTaxAmount(BigDecimal.valueOf((Double) taxAmountObj));
+            } else if (taxAmountObj instanceof String) {
+                order.setTaxAmount(new BigDecimal((String) taxAmountObj));
+            }
+        }
+        
+        Object afterTaxObj = doc.get("afterTaxAmount");
+        if (afterTaxObj != null) {
+            if (afterTaxObj instanceof Double) {
+                order.setAfterTaxAmount(BigDecimal.valueOf((Double) afterTaxObj));
+            } else if (afterTaxObj instanceof String) {
+                order.setAfterTaxAmount(new BigDecimal((String) afterTaxObj));
+            }
+        }
+        
         order.setCreatedAt(doc.getString("createdAt"));
         order.setEditedAt(doc.getString("editedAt"));
         return order;
@@ -128,6 +157,9 @@ public class SalesOrderServiceImpl implements SalesOrderService {
                 .append("taxId", order.getTaxId())
                 .append("orderStatus", order.getOrderStatus())
                 .append("description", order.getDescription())
+                .append("beforeTaxAmount", order.getBeforeTaxAmount() != null ? order.getBeforeTaxAmount().toString() : "0")
+                .append("taxAmount", order.getTaxAmount() != null ? order.getTaxAmount().toString() : "0")
+                .append("afterTaxAmount", order.getAfterTaxAmount() != null ? order.getAfterTaxAmount().toString() : "0")
                 .append("createdAt", order.getCreatedAt())
                 .append("editedAt", order.getEditedAt());
     }
@@ -234,13 +266,20 @@ public class SalesOrderServiceImpl implements SalesOrderService {
     private Tax mapToTax(Document doc) {
         if (doc == null) return null;
         Tax tax = new Tax();
-        tax.setId(doc.get("_id").toString());
+
+        Object idObj = doc.get("_id");
+        if (idObj != null) {
+            tax.setId(idObj.toString());
+        }
+
         tax.setTaxName(doc.getString("taxName"));
     
         // Parse BigDecimal for taxRate
         Object taxRateObj = doc.get("taxRate");
         if (taxRateObj != null) {
-            if (taxRateObj instanceof Double) {
+            if (taxRateObj instanceof Integer) {
+                tax.setTaxRate(BigDecimal.valueOf((Integer) taxRateObj));
+            } else if (taxRateObj instanceof Double) {
                 tax.setTaxRate(BigDecimal.valueOf((Double) taxRateObj));
             } else if (taxRateObj instanceof String) {
                 tax.setTaxRate(new BigDecimal((String) taxRateObj));
@@ -284,7 +323,6 @@ public class SalesOrderServiceImpl implements SalesOrderService {
     public List<SalesOrder> getAllSalesOrders() {
         List<SalesOrder> list = new ArrayList<>();
         try {
-            int count = 0;
             for (Document doc : salesOrderCollection.find()) {
                 SalesOrder order = mapToSalesOrder(doc);
                 list.add(order);
@@ -351,6 +389,9 @@ public class SalesOrderServiceImpl implements SalesOrderService {
         }
         Document doc = mapFromSalesOrderItem(item);
         salesOrderItemCollection.insertOne(doc);
+        
+        // Recalculate order totals after adding item
+        recalculateOrderTotals(item.getSalesOrderId());
     }
 
     @Override
@@ -368,13 +409,24 @@ public class SalesOrderServiceImpl implements SalesOrderService {
             item.setEditedAt(LocalDateTime.now().toString());
             Document doc = mapFromSalesOrderItem(item);
             salesOrderItemCollection.replaceOne(Filters.eq("_id", new ObjectId(item.getId())), doc);
+            
+            // Recalculate order totals after updating item
+            recalculateOrderTotals(item.getSalesOrderId());
         }
     }
 
     @Override
     public void deleteSalesOrderItem(String id) {
         try {
-            salesOrderItemCollection.deleteOne(Filters.eq("_id", new ObjectId(id)));
+            // Get the item first to find the order ID
+            Document doc = salesOrderItemCollection.find(Filters.eq("_id", new ObjectId(id))).first();
+            if (doc != null) {
+                String orderId = doc.getString("salesOrderId");
+                salesOrderItemCollection.deleteOne(Filters.eq("_id", new ObjectId(id)));
+                
+                // Recalculate order totals after deleting item
+                recalculateOrderTotals(orderId);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -547,11 +599,21 @@ public class SalesOrderServiceImpl implements SalesOrderService {
 
     public Optional<Tax> getTaxById(String id) {
         try {
-            Document doc = taxCollection.find(Filters.eq("_id", new ObjectId(id))).first();
+            Document doc = taxCollection.find(Filters.eq("_id", id)).first();
             return Optional.ofNullable(mapToTax(doc));
         } catch (IllegalArgumentException e) {
+            System.err.println("Error finding tax by id: " + id);
             return Optional.empty();
         }
+    }
+
+    @Override
+    public List<Tax> getAllTaxes() {
+        List<Tax> list = new ArrayList<>();
+        for (Document doc : taxCollection.find()) {
+            list.add(mapToTax(doc));
+        }
+        return list;
     }
 
     @Override
@@ -561,7 +623,6 @@ public class SalesOrderServiceImpl implements SalesOrderService {
         Optional<Tax> tax = getTaxById(taxId);
         return tax.map(Tax::getTaxRate).orElse(BigDecimal.ZERO);
     }
-
 
     @Override
     public String getSalesOrderNumberById(String id) {
@@ -580,5 +641,64 @@ public class SalesOrderServiceImpl implements SalesOrderService {
     private String generateOrderNumber(String prefix) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
         return prefix + "-" + LocalDateTime.now().format(formatter);
+    }
+    
+    /**
+     * Recalculate order totals (before tax, tax amount, after tax)
+     * Called whenever items are added, updated, or deleted
+     */
+    @Override
+    public void recalculateOrderTotals(String orderId) {
+        try {
+            Optional<SalesOrder> orderOpt = getSalesOrderById(orderId);
+            if (orderOpt.isEmpty()) return;
+            
+            SalesOrder order = orderOpt.get();
+            List<SalesOrderItem> items = getItemsByOrderId(orderId);
+            
+            // Calculate subtotal (before tax)
+            BigDecimal beforeTax = BigDecimal.ZERO;
+            for (SalesOrderItem item : items) {
+                BigDecimal itemTotal = item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
+                beforeTax = beforeTax.add(itemTotal);
+            }
+            
+            // Calculate tax amount
+            BigDecimal taxAmount = BigDecimal.ZERO;
+            if (order.getTaxId() != null) {
+                BigDecimal taxRate = getTaxRateById(order.getTaxId());
+                taxAmount = beforeTax.multiply(taxRate).divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP);
+            }
+            
+            // Calculate after tax amount
+            BigDecimal afterTax = beforeTax.add(taxAmount);
+            
+            // Update order with calculated amounts
+            order.setBeforeTaxAmount(beforeTax);
+            order.setTaxAmount(taxAmount);
+            order.setAfterTaxAmount(afterTax);
+            
+            updateSalesOrder(order);
+            
+        } catch (Exception e) {
+            System.err.println("Error recalculating order totals: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Get product price by ID
+     */
+    @Override
+    public BigDecimal getProductPriceById(String productId) {
+        if (productId == null || productService == null) return BigDecimal.ZERO;
+        Product product = productService.getProduct(productId);
+        return product != null ? BigDecimal.valueOf(product.getPrice()) : BigDecimal.ZERO;
+    }
+
+    @Override
+    public Optional<Tax> getTaxByName(String taxName) {
+        Document doc = taxCollection.find(Filters.eq("taxName", taxName)).first();
+        return Optional.ofNullable(mapToTax(doc));
     }
 }

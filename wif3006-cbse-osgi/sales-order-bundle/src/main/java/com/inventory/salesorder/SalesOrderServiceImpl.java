@@ -8,8 +8,8 @@ import com.inventory.api.salesorder.model.SalesReturn;
 import com.inventory.api.salesorder.model.Tax;
 import com.inventory.api.customer.service.CustomerService;
 import com.inventory.api.customer.model.Customer;
-import com.inventory.api.product.ProductService;
-import com.inventory.api.product.Product;
+import com.inventory.api.product.service.ProductService;
+import com.inventory.api.product.model.Product;
 
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
@@ -32,7 +32,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
+import java.util.Date;
 @Component(service = SalesOrderService.class)
 public class SalesOrderServiceImpl implements SalesOrderService {
 
@@ -97,9 +97,18 @@ public class SalesOrderServiceImpl implements SalesOrderService {
         order.setOrderNumber(doc.getString("orderNumber"));
         
         // Parse LocalDate from string
-        String orderDateStr = doc.getString("orderDate");
-        if (orderDateStr != null) {
-            order.setOrderDate(LocalDate.parse(orderDateStr));
+        Object orderDateObj = doc.get("orderDate");
+        if (orderDateObj != null) {
+            if (orderDateObj instanceof Date) {
+                // Convert java.util.Date to LocalDate
+                Date date = (Date) orderDateObj;
+                order.setOrderDate(date.toInstant()
+                    .atZone(java.time.ZoneId.systemDefault())
+                    .toLocalDate());
+            } else if (orderDateObj instanceof String) {
+                // Parse String to LocalDate
+                order.setOrderDate(LocalDate.parse((String) orderDateObj));
+            }
         }
         
         order.setCustomerId(doc.getString("customerId"));
@@ -274,8 +283,16 @@ public class SalesOrderServiceImpl implements SalesOrderService {
     @Override
     public List<SalesOrder> getAllSalesOrders() {
         List<SalesOrder> list = new ArrayList<>();
-        for (Document doc : salesOrderCollection.find()) {
-            list.add(mapToSalesOrder(doc));
+        try {
+            int count = 0;
+            for (Document doc : salesOrderCollection.find()) {
+                SalesOrder order = mapToSalesOrder(doc);
+                list.add(order);
+            }
+        } catch (Exception e) {
+            System.err.println("DEBUG SERVICE: Exception in getAllSalesOrders!");
+            e.printStackTrace();
+            throw e;
         }
         return list;
     }
@@ -561,8 +578,7 @@ public class SalesOrderServiceImpl implements SalesOrderService {
     // =================== UTILITY METHODS ===================
 
     private String generateOrderNumber(String prefix) {
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
-        String random = String.format("%04d", (int) (Math.random() * 10000));
-        return prefix + "-" + timestamp + "-" + random;
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+        return prefix + "-" + LocalDateTime.now().format(formatter);
     }
 }

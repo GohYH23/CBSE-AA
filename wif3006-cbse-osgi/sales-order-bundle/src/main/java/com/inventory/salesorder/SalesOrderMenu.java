@@ -112,21 +112,31 @@ public class SalesOrderMenu implements ModuleMenu {
                         System.out.println("No sales orders found.");
                     } else {
                         System.out.println("\n--- Sales Order List ---");
-                        System.out.printf("%-4s %-15s %-12s %-20s %-12s %-15s %-35s %-20s %-20s%n",
+                        System.out.printf("%-4s %-23s %-12s %-20s %-10s %-15s %-30s %-20s %-20s%n",
                                 "No.", "Order Number", "Order Date", "Customer", "Tax (%)", "Status", "Description", "Created At", "Edited At");
-                        System.out.println("---------------------------------------------------------------------------------------------------------------------------------------------------");
+                        System.out.println("-----------------------------------------------------------------------------------------------------------------------------------------");
 
                         int i = 1;
                         for (SalesOrder order : orders) {
                             String orderDate = formatLocalDate(order.getOrderDate());
                             String customer = salesOrderService.getCustomerNameById(order.getCustomerId());
-                            String taxRate = (order.getTaxId() != null) ? salesOrderService.getTaxRateById(order.getTaxId()).toString() : "0";
+                            
+                            String taxRate = "0";
+                            if (order.getTaxId() != null) {
+                                BigDecimal rate = salesOrderService.getTaxRateById(order.getTaxId());
+                                taxRate = (rate != null) ? rate.toString() : "0";
+                            }
+
                             String description = (order.getDescription() != null && !order.getDescription().isEmpty()) 
                                     ? order.getDescription() : "N/A";
+                            // Truncate description if too long
+                            if (description.length() > 28) {
+                                description = description.substring(0, 25) + "...";
+                            }
                             String created = formatDate(order.getCreatedAt());
                             String edited = formatDate(order.getEditedAt());
 
-                            System.out.printf("%-4d %-15s %-12s %-20s %-12s %-15s %-35s %-20s %-20s%n",
+                            System.out.printf("%-4d %-23s %-12s %-20s %-10s %-15s %-30s %-20s %-20s%n",
                                     i++, order.getOrderNumber(), orderDate, customer, taxRate, 
                                     order.getOrderStatus(), description, created, edited);
                         }
@@ -459,7 +469,7 @@ public class SalesOrderMenu implements ModuleMenu {
         }
 
         System.out.println("\n--- Grouped Sales Report ---");
-        System.out.printf("%-15s %-20s %-10s %-15s%n",
+        System.out.printf("%-23s %-20s %-10s %-15s%n",
                 "Order Number", "Customer", "Items", "Total Amount");
         System.out.println("------------------------------------------------------------------------");
 
@@ -482,11 +492,11 @@ public class SalesOrderMenu implements ModuleMenu {
 
             overallTotal = overallTotal.add(orderTotal);
 
-            System.out.printf("%-15s %-20s %-10d %-15s%n",
+            System.out.printf("%-23s %-20s %-10d %-15s%n",
                     order.getOrderNumber(), customer, items.size(), orderTotal);
         }
         System.out.println("------------------------------------------------------------------------");
-        System.out.printf("%-46s %-15s%n", "Overall Total:", overallTotal);
+        System.out.printf("%-54s %-15s%n", "Overall Total:", overallTotal);
 
         // Detailed view option
         System.out.print("\nView detailed items for an order? (Enter Order Number or 'no'): ");
@@ -562,9 +572,9 @@ public class SalesOrderMenu implements ModuleMenu {
                         System.out.println("No delivery orders found.");
                     } else {
                         System.out.println("\n--- Delivery Order List ---");
-                        System.out.printf("%-4s %-18s %-15s %-18s %-15s %-35s %-20s %-20s%n",
+                        System.out.printf("%-4s %-23s %-15s %-23s %-15s %-30s %-20s %-20s%n",
                                 "No.", "Delivery Number", "Delivery Date", "Sales Order", "Status", "Description", "Created At", "Edited At");
-                        System.out.println("----------------------------------------------------------------------------------------------------------------------------------------------------");
+                        System.out.println("-----------------------------------------------------------------------------------------------------------------------------------------------");
 
                         int i = 1;
                         for (DeliveryOrder order : orders) {
@@ -572,10 +582,14 @@ public class SalesOrderMenu implements ModuleMenu {
                             String salesOrderNum = salesOrderService.getSalesOrderNumberById(order.getSalesOrderId());
                             String description = (order.getDescription() != null && !order.getDescription().isEmpty()) 
                                     ? order.getDescription() : "N/A";
+                            // Truncate description if too long
+                            if (description.length() > 28) {
+                                description = description.substring(0, 25) + "...";
+                            }
                             String created = formatDate(order.getCreatedAt());
                             String edited = formatDate(order.getEditedAt());
 
-                            System.out.printf("%-4d %-18s %-15s %-18s %-15s %-35s %-20s %-20s%n",
+                            System.out.printf("%-4d %-23s %-15s %-23s %-15s %-30s %-20s %-20s%n",
                                     i++, order.getDeliveryNumber(), deliveryDate, salesOrderNum, 
                                     order.getStatus(), description, created, edited);
                         }
@@ -701,9 +715,9 @@ public class SalesOrderMenu implements ModuleMenu {
                         System.out.println("No sales returns found.");
                     } else {
                         System.out.println("\n--- Sales Return List ---");
-                        System.out.printf("%-4s %-15s %-13s %-18s %-15s %-35s %-20s %-20s%n",
+                        System.out.printf("%-4s %-23s %-13s %-23s %-15s %-30s %-20s %-20s%n",
                                 "No.", "Return Number", "Return Date", "Delivery Order", "Status", "Description", "Created At", "Edited At");
-                        System.out.println("------------------------------------------------------------------------------------------------------------------------------------------------------");
+                        System.out.println("------------------------------------------------------------------------------------------------------------------------------------------");
 
                         int i = 1;
                         for (SalesReturn returnOrder : returns) {
@@ -711,10 +725,14 @@ public class SalesOrderMenu implements ModuleMenu {
                             String deliveryNum = salesOrderService.getDeliveryOrderNumberById(returnOrder.getDeliveryOrderId());
                             String description = (returnOrder.getDescription() != null && !returnOrder.getDescription().isEmpty()) 
                                     ? returnOrder.getDescription() : "N/A";
+                            // Truncate description if too long
+                            if (description.length() > 28) {
+                                description = description.substring(0, 25) + "...";
+                            }
                             String created = formatDate(returnOrder.getCreatedAt());
                             String edited = formatDate(returnOrder.getEditedAt());
 
-                            System.out.printf("%-4d %-15s %-13s %-18s %-15s %-35s %-20s %-20s%n",
+                            System.out.printf("%-4d %-23s %-13s %-23s %-15s %-30s %-20s %-20s%n",
                                     i++, returnOrder.getReturnNumber(), returnDate, deliveryNum, 
                                     returnOrder.getStatus(), description, created, edited);
                         }

@@ -14,7 +14,7 @@ import java.util.Scanner;
 @EnableMongoAuditing
 public class InventoryManagementApplication implements CommandLineRunner {
 
-    // Inject your new menu class
+    // Inject new menu class
     @Autowired
     private CustomerMenu customerMenu;
 
@@ -48,7 +48,6 @@ public class InventoryManagementApplication implements CommandLineRunner {
 
             switch (choice) {
                 case "1":
-                    // Jump to your new Customer Menu File
                     customerMenu.start(scanner);
                     break;
                 case "2":

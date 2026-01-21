@@ -17,11 +17,11 @@ import java.io.IOException;
 public class Launcher {
     public static void main(String[] args) {
         try {
-            System.out.println("🚀 Starting Pure OSGi Inventory System...");
+            System.out.println("Starting Pure OSGi Inventory System...");
 
             try (InputStream input = Launcher.class.getClassLoader().getResourceAsStream("osgi.properties")) {
                 if (input == null) {
-                    System.out.println("⚠️ Warning: osgi.properties not found!");
+                    System.out.println("Warning: osgi.properties not found!");
                 } else {
                     Properties prop = new Properties();
                     prop.load(input);
@@ -33,7 +33,7 @@ public class Launcher {
                     // Now ANY bundle can read this using System.getProperty()
                     if (uri != null) {
                         System.setProperty("mongodb.uri", uri);
-                        System.out.println("📝 Configuration Loaded: MongoDB URI set.");
+                        System.out.println("Configuration Loaded: MongoDB URI set.");
                     }
                 }
             } catch (IOException ex) {
@@ -55,7 +55,7 @@ public class Launcher {
             // If running from wif3006-cbse-osgi, use current directory
             File currentDir = new File(".").getAbsoluteFile();
             String rootPath;
-            
+
             // Check if we're in the target directory
             if (currentDir.getName().equals("target") && currentDir.getParentFile().getName().equals("inventory-launcher")) {
                 // We're in inventory-launcher/target, go up to project root
@@ -64,7 +64,7 @@ public class Launcher {
                 // We're in project root
                 rootPath = currentDir.getAbsolutePath();
             }
-            
+
             // Ensure path uses forward slashes (or use File.separator)
             rootPath = rootPath.replace("\\", "/");
             if (!rootPath.endsWith("/")) {
@@ -118,21 +118,21 @@ public class Launcher {
     private static void installAndStart(BundleContext context, String rootPath, String bundlePath) {
         // bundlePath is already an absolute path from rootPath
         File f = new File(bundlePath);
-        
+
         if (!f.exists()) {
-            System.err.println("   ❌ Bundle file not found: " + bundlePath);
+            System.err.println("Bundle file not found: " + bundlePath);
             return;
         }
-        
+
         String fullPath = "file:" + f.getAbsolutePath();
 
         try {
             Bundle b = context.installBundle(fullPath);
             b.start();
-            System.out.println("   ✅ Installed & Started: " + b.getSymbolicName());
+            System.out.println("Installed & Started: " + b.getSymbolicName());
         } catch (Exception e) {
-            System.err.println("   ❌ Failed to load: " + bundlePath);
-            System.err.println("      Error: " + e.getMessage());
+            System.err.println("Failed to load: " + bundlePath);
+            System.err.println("Error: " + e.getMessage());
             e.printStackTrace();
         }
     }

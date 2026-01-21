@@ -37,11 +37,11 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Activate
     public void activate() {
-        System.out.println("✅ Customer Service: Starting with MANUAL Mapping...");
+        System.out.println("Customer Service: Starting with MANUAL Mapping...");
         try {
             String uri = System.getProperty("mongodb.uri");
             if (uri == null || uri.isEmpty()) {
-                System.err.println("❌ Error: mongodb.uri not found in System Properties.");
+                System.err.println("Error: mongodb.uri not found in System Properties.");
                 return;
             }
 
@@ -55,10 +55,10 @@ public class CustomerServiceImpl implements CustomerService {
             categoryCollection = database.getCollection("customer_categories");
             contactCollection = database.getCollection("customer_contacts");
 
-            System.out.println("✅ Customer Service: Database Connected (Manual Mode).");
+            System.out.println("Customer Service: Database Connected (Manual Mode).");
 
         } catch (Exception e) {
-            System.err.println("❌ Customer Service: Connection Failed.");
+            System.err.println("Customer Service: Connection Failed.");
             e.printStackTrace();
         }
     }
@@ -66,7 +66,7 @@ public class CustomerServiceImpl implements CustomerService {
     @Deactivate
     public void deactivate() {
         if (mongoClient != null) mongoClient.close();
-        System.out.println("🛑 Customer Service: Stopped.");
+        System.out.println("Customer Service: Stopped.");
     }
 
     // MAPPING HELPERS METHOD

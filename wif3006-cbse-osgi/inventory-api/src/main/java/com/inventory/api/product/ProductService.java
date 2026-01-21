@@ -11,19 +11,24 @@ public interface ProductService {
     List<Product> getAllProducts();
     Product getProduct(String id);       // <-- NEW
 
+    // ... inside ProductService interface ...
+
     // Group
     void addProductGroup(ProductGroup group);
-    void deleteProductGroup(String id);  // <-- NEW
+    void updateProductGroup(ProductGroup group); // <--- NEW
+    void deleteProductGroup(String id);
     List<ProductGroup> getAllProductGroups();
 
     // UOM
     void addUnitMeasure(UnitMeasure uom);
-    void deleteUnitMeasure(String id);   // <-- NEW
+    void updateUnitMeasure(UnitMeasure uom);     // <--- NEW
+    void deleteUnitMeasure(String id);
     List<UnitMeasure> getAllUnitMeasures();
 
     // Warehouse
     void addWarehouse(Warehouse warehouse);
-    void deleteWarehouse(String name);   // <-- NEW
+    void updateWarehouse(Warehouse warehouse);   // <--- NEW
+    void deleteWarehouse(String name);
     List<Warehouse> getAllWarehouses();
 
     // Stock

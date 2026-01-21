@@ -2,6 +2,8 @@ package com.inventorymanagement.salesorder_wongxiuhuan.service;
 
 import com.inventorymanagement.salesorder_wongxiuhuan.model.*;
 import com.inventorymanagement.salesorder_wongxiuhuan.repository.*;
+import com.inventorymanagement.customer_gohyuheng.repository.CustomerRepository;
+import com.inventorymanagement.product_ericleechunkiat.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -30,14 +32,10 @@ public class SalesOrderService {
     private TaxRepository taxRepo;
 
     @Autowired
-    private com.inventorymanagement.customer_gohyuheng.repository.CustomerRepository customerRepo;
+    private CustomerRepository customerRepo;
 
-    // Note: These will be autowired from other modules
-    // @Autowired
-    // private CustomerRepository customerRepo; // From customer module
-    
-    // @Autowired
-    // private ProductRepository productRepo; // From product module
+    @Autowired
+    private ProductRepository productRepo;
 
     // ==================== SALES ORDER LOGIC ====================
 
@@ -99,7 +97,11 @@ public class SalesOrderService {
     public SalesOrderItem addSalesOrderItem(SalesOrderItem item) {
         item.setCreatedDate(LocalDateTime.now());
         item.setUpdatedDate(LocalDateTime.now());
-        return salesOrderItemRepo.save(item);
+        SalesOrderItem saved = salesOrderItemRepo.save(item);
+
+        recalculateOrderTotals(item.getSalesOrderId());
+
+        return saved;
     }
 
     public List<SalesOrderItem> getItemsByOrderId(String salesOrderId) {
@@ -116,11 +118,21 @@ public class SalesOrderService {
 
     public SalesOrderItem updateSalesOrderItem(SalesOrderItem item) {
         item.setUpdatedDate(LocalDateTime.now());
-        return salesOrderItemRepo.save(item);
+        SalesOrderItem updated = salesOrderItemRepo.save(item);
+
+        recalculateOrderTotals(item.getSalesOrderId());
+
+        return updated;
     }
 
     public void deleteSalesOrderItem(String id) {
-        salesOrderItemRepo.deleteById(id);
+        Optional<SalesOrderItem> itemOpt = salesOrderItemRepo.findById(id);
+        if (itemOpt.isPresent()) {
+            String orderId = itemOpt.get().getSalesOrderId();
+            salesOrderItemRepo.deleteById(id);
+        
+            recalculateOrderTotals(orderId);
+        }
     }
 
     // ==================== DELIVERY ORDER LOGIC ====================
@@ -271,23 +283,30 @@ public class SalesOrderService {
     }
 
     /**
-     * Get product name by ID
-     * This method will need to call the Product module
-     */
+    * Get product name by ID
+    */
     public String getProductNameById(String productId) {
-        // TODO: Call product service from product module
-        // return productRepo.findById(productId).map(Product::getName).orElse("Unknown");
-        return "Product-" + productId;
+        return productRepo.findById(productId)
+                .map(product -> product.getName())
+                .orElse("Unknown");
     }
 
     /**
      * Get product ID by name
-     * This method will need to call the Product module
-     */
+    */
     public String getProductIdByName(String productName) {
-        // TODO: Call product service from product module
-        // return productRepo.findByName(productName).map(Product::getId).orElse(null);
-        return null; // Placeholder
+        return productRepo.findByName(productName)
+                .map(product -> product.getId())
+                .orElse(null);
+    }
+
+    /**
+     * Get product price by ID
+    */
+    public BigDecimal getProductPriceById(String productId) {
+        return productRepo.findById(productId)
+                .map(product -> BigDecimal.valueOf(product.getPrice()))
+                .orElse(BigDecimal.ZERO);
     }
 
     /**
@@ -315,5 +334,47 @@ public class SalesOrderService {
         return deliveryOrderRepo.findById(deliveryOrderId)
                 .map(DeliveryOrder::getDeliveryNumber)
                 .orElse("Unknown");
+    }
+
+    /**
+    * Recalculate order totals (before tax, tax amount, after tax)
+    * Called whenever items are added, updated, or deleted
+    */
+    public void recalculateOrderTotals(String orderId) {
+        try {
+            Optional<SalesOrder> orderOpt = salesOrderRepo.findById(orderId);
+            if (orderOpt.isEmpty()) return;
+        
+            SalesOrder order = orderOpt.get();
+            List<SalesOrderItem> items = salesOrderItemRepo.findBySalesOrderId(orderId);
+        
+            // Calculate subtotal (before tax)
+            BigDecimal beforeTax = BigDecimal.ZERO;
+            for (SalesOrderItem item : items) {
+                BigDecimal itemTotal = item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
+                beforeTax = beforeTax.add(itemTotal);
+            }
+        
+            // Calculate tax amount
+            BigDecimal taxAmount = BigDecimal.ZERO;
+            if (order.getTaxId() != null && !order.getTaxId().trim().isEmpty()) {
+                BigDecimal taxRate = getTaxRateById(order.getTaxId());
+                taxAmount = beforeTax.multiply(taxRate).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+            }
+        
+            // Calculate after tax amount
+            BigDecimal afterTax = beforeTax.add(taxAmount);
+        
+            // Update order with calculated amounts
+            order.setBeforeTaxAmount(beforeTax);
+            order.setTaxAmount(taxAmount);
+            order.setAfterTaxAmount(afterTax);
+        
+            updateSalesOrder(order);
+        
+        } catch (Exception e) {
+            System.err.println("Error recalculating order totals: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }

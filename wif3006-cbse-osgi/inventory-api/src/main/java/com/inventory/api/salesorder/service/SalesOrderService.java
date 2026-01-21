@@ -4,6 +4,7 @@ import com.inventory.api.salesorder.model.SalesOrder;
 import com.inventory.api.salesorder.model.SalesOrderItem;
 import com.inventory.api.salesorder.model.DeliveryOrder;
 import com.inventory.api.salesorder.model.SalesReturn;
+import com.inventory.api.salesorder.model.Tax;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -72,9 +73,17 @@ public interface SalesOrderService {
 
     String getProductIdByName(String productName);
 
+    List<Tax> getAllTaxes();
+
     BigDecimal getTaxRateById(String taxId);
 
     String getSalesOrderNumberById(String id);
 
     String getDeliveryOrderNumberById(String id);
+
+    BigDecimal getProductPriceById(String productId);
+
+    Optional<Tax> getTaxByName(String taxName);
+
+    void recalculateOrderTotals(String orderId);
 }

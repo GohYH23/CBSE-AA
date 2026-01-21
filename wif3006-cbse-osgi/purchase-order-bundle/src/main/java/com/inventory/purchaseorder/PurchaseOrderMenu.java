@@ -1,8 +1,11 @@
+// Name: Ooi Wei Ying
+// Student ID: 22056924
+
 package com.inventory.purchaseorder;
 
-import com.inventory.api.purchaseorder.PurchaseOrder;
-import com.inventory.api.purchaseorder.PurchaseOrderService;
-import com.inventory.api.purchaseorder.OrderItem;
+import com.inventory.api.purchaseorder.model.PurchaseOrder;
+import com.inventory.api.purchaseorder.service.PurchaseOrderService;
+import com.inventory.api.purchaseorder.model.OrderItem;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -333,6 +336,7 @@ public class PurchaseOrderMenu {
             // Order Items (loop)
             List<OrderItem> orderItems = new ArrayList<>();
             System.out.println("\n--- Add Order Items (Enter 'done' when finished, 'cancel' to cancel) ---");
+            System.out.println("Note: Each purchase order must have at least one item.");
             boolean addingItems = true;
             int itemCount = 1;
             
@@ -348,7 +352,9 @@ public class PurchaseOrderMenu {
                 
                 if (itemName.equalsIgnoreCase("done")) {
                     if (orderItems.isEmpty()) {
-                        System.out.println("Please add at least one item. Type item name to continue or 'cancel' to cancel.");
+                        System.out.println("\n⚠️  ERROR: Each purchase order must have at least one item.");
+                        System.out.println("Please add at least one item before finishing, or enter 'cancel' to cancel the operation.");
+                        System.out.println("Current items added: " + orderItems.size());
                         continue;
                     }
                     addingItems = false;
@@ -381,17 +387,12 @@ public class PurchaseOrderMenu {
                 itemCount++;
             }
             
-            // Order Status (restricted - cannot set to received or returned in Add)
+            // Order Status - automatically set to pending
             System.out.println("\n--- Order Status ---");
-            System.out.println("Note: Status can only be set to: pending, shipping, or cancelled.");
+            System.out.println("Note: Order status is automatically set to 'pending'.");
+            System.out.println("You can change the status later through 'Edit Purchase Order'.");
             System.out.println("'received' status can only be set through 'Manage Goods Receive' module.");
             System.out.println("'returned' status can only be set through 'Manage Purchase Return' module.");
-            
-            String orderStatus = readStatusForEdit(false, null, true);
-            if (orderStatus.equals("CANCEL_SIGNAL")) {
-                System.out.println("Operation cancelled. Returning to Purchase Order menu.");
-                return;
-            }
             
             // Create and save purchase order
             PurchaseOrder newOrder = new PurchaseOrder();
@@ -400,7 +401,7 @@ public class PurchaseOrderMenu {
             newOrder.setOrderNumber(generateOrderNumber(nextId)); // Auto-generate order number
             newOrder.setVendor(vendor);
             newOrder.setOrderItems(orderItems);
-            newOrder.setOrderStatus(orderStatus);
+            newOrder.setOrderStatus("pending"); // Automatically set to pending
             
             PurchaseOrder savedOrder = purchaseOrderService.addPurchaseOrder(newOrder);
             
@@ -563,13 +564,22 @@ public class PurchaseOrderMenu {
                 orderItems = orderToEdit.getOrderItems();
             }
             
-            // Order Status (restricted - cannot set to received or returned)
+            // Order Status - Implement status transition rules
             String currentStatus = orderToEdit.getOrderStatus().toLowerCase();
             String orderStatus;
             
+            // If current status is cancelled, cannot be changed
+            if (currentStatus.equals("cancelled")) {
+                System.out.println("\n--- Order Status ---");
+                System.out.println("⚠️  WARNING: This order is CANCELLED and cannot be changed to pending or shipping status.");
+                System.out.println("Cancelled orders are irreversible.");
+                System.out.println("Status will remain as 'cancelled'.");
+                orderStatus = currentStatus; // Keep as cancelled
+            }
             // If current status is received or returned, user cannot change it here
-            if (currentStatus.equals("received") || currentStatus.equals("returned")) {
-                System.out.println("\nNote: Current status is '" + currentStatus + "', which cannot be changed here.");
+            else if (currentStatus.equals("received") || currentStatus.equals("returned")) {
+                System.out.println("\n--- Order Status ---");
+                System.out.println("Note: Current status is '" + currentStatus + "', which cannot be changed here.");
                 System.out.println("Status will remain as '" + currentStatus + "'.");
                 System.out.println("To change status from '" + currentStatus + "', use:");
                 if (currentStatus.equals("received")) {
@@ -579,18 +589,77 @@ public class PurchaseOrderMenu {
                     System.out.println("  - 'Manage Purchase Return' → Delete to change back to 'received'");
                 }
                 orderStatus = currentStatus; // Keep the original status
-            } else {
-                // Current status is pending, shipping, or cancelled - can be changed
-                System.out.println("\nNote: Status can only be changed to: pending, shipping, or cancelled.");
-                System.out.println("To change status to 'received', use 'Manage Goods Receive'.");
-                System.out.println("To change status to 'returned', use 'Manage Purchase Return'.");
+            } 
+            // Current status is pending or shipping - can be changed
+            else {
+                System.out.println("\n--- Order Status ---");
+                System.out.println("Current status: " + currentStatus);
                 
-                String newStatus = readStatusForEdit(true, orderToEdit.getOrderStatus(), true);
-                if (newStatus.equals("CANCEL_SIGNAL")) {
+                // Show available status options based on current status
+                if (currentStatus.equals("pending")) {
+                    System.out.println("Available options:");
+                    System.out.println("  - shipping (reversible)");
+                    System.out.println("  - cancelled (irreversible - requires confirmation)");
+                } else if (currentStatus.equals("shipping")) {
+                    System.out.println("Available options:");
+                    System.out.println("  - pending (reversible)");
+                    System.out.println("  - cancelled (irreversible - requires confirmation)");
+                }
+                
+                System.out.print("\nEnter new status (or press Enter to keep current): ");
+                String input = scanner.nextLine().trim().toLowerCase();
+                
+                if (checkCancel(input)) {
                     System.out.println("Operation cancelled. Returning to Purchase Order menu.");
                     return;
                 }
-                orderStatus = newStatus;
+                
+                // If empty, keep current status
+                if (input.isEmpty()) {
+                    orderStatus = currentStatus;
+                } else {
+                    // Validate the status transition
+                    boolean validTransition = false;
+                    boolean requiresConfirmation = false;
+                    
+                    if (currentStatus.equals("pending")) {
+                        if (input.equals("shipping")) {
+                            validTransition = true;
+                            requiresConfirmation = false;
+                        } else if (input.equals("cancelled")) {
+                            validTransition = true;
+                            requiresConfirmation = true; // Irreversible
+                        }
+                    } else if (currentStatus.equals("shipping")) {
+                        if (input.equals("pending")) {
+                            validTransition = true;
+                            requiresConfirmation = false;
+                        } else if (input.equals("cancelled")) {
+                            validTransition = true;
+                            requiresConfirmation = true; // Irreversible
+                        }
+                    }
+                    
+                    if (!validTransition) {
+                        System.out.println("Invalid status transition. Status must remain as '" + currentStatus + "'.");
+                        orderStatus = currentStatus;
+                    } else {
+                        // If transition requires confirmation, ask user
+                        if (requiresConfirmation) {
+                            System.out.print("⚠️  WARNING: This action is IRREVERSIBLE. Are you sure you want to cancel this order? (Y/N): ");
+                            String confirm = scanner.nextLine().trim().toUpperCase();
+                            if (confirm.equals("Y") || confirm.equals("YES")) {
+                                orderStatus = input;
+                                System.out.println("Order will be marked as cancelled.");
+                            } else {
+                                System.out.println("Cancellation cancelled. Status will remain as '" + currentStatus + "'.");
+                                orderStatus = currentStatus;
+                            }
+                        } else {
+                            orderStatus = input;
+                        }
+                    }
+                }
             }
             
             // Create updated order (order number stays the same - auto-generated)
@@ -995,10 +1064,28 @@ public class PurchaseOrderMenu {
             System.out.printf("Order ID: %-8d | Order Number: %-15s | Date: %-12s | Vendor: %-25s | Status: %-15s%n",
                 order.getOrderId(),
                 order.getOrderNumber(),
-                order.getOrderDate().format(DateTimeFormatter.ISO_LOCAL_DATE),
+                order.getOrderDate() != null ? order.getOrderDate().format(DateTimeFormatter.ISO_LOCAL_DATE) : "N/A",
                 order.getVendor(),
                 order.getOrderStatus());
             System.out.println("=".repeat(110));
+            
+            // Date Information
+            System.out.println("\nDate Information:");
+            System.out.println("-".repeat(110));
+            System.out.printf("%-20s: %-15s | %-20s: %-15s%n",
+                "Order Date",
+                order.getOrderDate() != null ? order.getOrderDate().format(DateTimeFormatter.ISO_LOCAL_DATE) : "N/A",
+                "Shipping Date",
+                order.getShippingDate() != null ? order.getShippingDate().format(DateTimeFormatter.ISO_LOCAL_DATE) : "N/A");
+            System.out.printf("%-20s: %-15s | %-20s: %-15s%n",
+                "Received Date",
+                order.getReceivedDate() != null ? order.getReceivedDate().format(DateTimeFormatter.ISO_LOCAL_DATE) : "N/A",
+                "Returned Date",
+                order.getReturnedDate() != null ? order.getReturnedDate().format(DateTimeFormatter.ISO_LOCAL_DATE) : "N/A");
+            System.out.printf("%-20s: %-15s%n",
+                "Cancelled Date",
+                order.getCancelledDate() != null ? order.getCancelledDate().format(DateTimeFormatter.ISO_LOCAL_DATE) : "N/A");
+            System.out.println("-".repeat(110));
             
             // Item Details Table
             List<OrderItem> items = order.getOrderItems();

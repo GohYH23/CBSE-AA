@@ -5,10 +5,13 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 
+import java.util.Optional;
+
 @Repository
 public interface ProductRepository extends MongoRepository<Product, String> {
     // Custom finder methods (Spring generates the logic automatically)
     boolean existsByNameIgnoreCase(String name);
     List<Product> findByProductGroupId(String groupId);
     List<Product> findByUomId(String uomId);
+    Optional<Product> findByName(String name);
 }

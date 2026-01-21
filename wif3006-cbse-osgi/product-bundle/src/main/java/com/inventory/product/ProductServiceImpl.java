@@ -1,6 +1,7 @@
 package com.inventory.product;
 
-import com.inventory.api.product.*;
+import com.inventory.api.product.model.*;
+import com.inventory.api.product.service.ProductService;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;

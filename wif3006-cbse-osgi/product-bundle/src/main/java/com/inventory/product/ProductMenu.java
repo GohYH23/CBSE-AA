@@ -1,11 +1,11 @@
 package com.inventory.product;
 
 import com.inventory.api.ModuleMenu;
-import com.inventory.api.product.*;
+import com.inventory.api.product.model.*;
+import com.inventory.api.product.service.ProductService;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import java.util.Scanner;
-import java.util.List;
 
 @Component(service = ModuleMenu.class, immediate = true)
 public class ProductMenu implements ModuleMenu {

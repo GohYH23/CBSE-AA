@@ -1,4 +1,4 @@
-package com.inventory.api.purchaseorder;
+package com.inventory.api.purchaseorder.model;
 
 import java.io.Serializable;
 import java.time.LocalDate;
@@ -15,6 +15,8 @@ public class PurchaseOrder implements Serializable {
     private String orderStatus;
     private LocalDate receivedDate; // Date when order status changed to "received"
     private LocalDate returnedDate; // Date when order status changed to "returned"
+    private LocalDate shippingDate; // Date when order status changed to "shipping"
+    private LocalDate cancelledDate; // Date when order status changed to "cancelled"
     
     public PurchaseOrder() {
         this.orderItems = new ArrayList<>();
@@ -92,6 +94,22 @@ public class PurchaseOrder implements Serializable {
     
     public void setReturnedDate(LocalDate returnedDate) {
         this.returnedDate = returnedDate;
+    }
+    
+    public LocalDate getShippingDate() {
+        return shippingDate;
+    }
+    
+    public void setShippingDate(LocalDate shippingDate) {
+        this.shippingDate = shippingDate;
+    }
+    
+    public LocalDate getCancelledDate() {
+        return cancelledDate;
+    }
+    
+    public void setCancelledDate(LocalDate cancelledDate) {
+        this.cancelledDate = cancelledDate;
     }
     
     public double getTotalPrice() {

@@ -6,6 +6,7 @@
 package com.inventory.customer;
 
 import com.inventory.api.customer.model.*;
+import com.inventory.api.customer.service.CustomerDependencyChecker;
 import com.mongodb.client.*;
 import com.mongodb.client.result.DeleteResult;
 import org.bson.Document;
@@ -44,6 +45,10 @@ public class CustomerServiceImplTest {
     @Mock
     private DeleteResult deleteResult;
 
+    // We need to mock the checker interface
+    @Mock
+    private CustomerDependencyChecker dependencyChecker;
+
     @InjectMocks
     private CustomerServiceImpl customerService;
 
@@ -80,6 +85,7 @@ public class CustomerServiceImplTest {
 
         Optional<Customer> result = customerService.getCustomerById(id.toString());
         assertTrue(result.isPresent());
+        assertEquals("Ali", result.get().getName());
     }
 
     @Test
@@ -91,9 +97,71 @@ public class CustomerServiceImplTest {
     }
 
     @Test
-    void testDeleteCustomer_ShouldCascadeToContacts() {
+    void testDeleteCustomer_WhenNotFound_ShouldReturnErrorMessage() {
+        // Arrange
         String id = new ObjectId().toString();
-        customerService.deleteCustomer(id);
+        // Simulate customer not found in DB
+        when(customerCollection.find(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(null);
+
+        // Act
+        String result = customerService.deleteCustomer(id);
+
+        // Assert
+        assertEquals("Customer not found.", result);
+        verify(customerCollection, never()).deleteOne(any(Bson.class));
+    }
+
+    @Test
+    void testDeleteCustomer_WhenDependencyExists_ShouldBlockDeletion() {
+        // Arrange
+        ObjectId id = new ObjectId();
+
+        // 1. Simulate customer found
+        when(customerCollection.find(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(new Document("_id", id).append("name", "Ali"));
+
+        // 2. Simulate Dependency Checker saying "YES, I have data"
+        when(dependencyChecker.hasDependency(id.toString())).thenReturn(true);
+        when(dependencyChecker.getDependencyMessage()).thenReturn("Customer has Sales Orders.");
+
+        // Bind the mock checker to the service
+        customerService.bindChecker(dependencyChecker);
+
+        // Act
+        String result = customerService.deleteCustomer(id.toString());
+
+        // Assert
+        assertTrue(result.contains("Cannot delete"));
+        assertTrue(result.contains("Sales Orders"));
+
+        // Ensure NO delete happened
+        verify(customerCollection, never()).deleteOne(any(Bson.class));
+        verify(contactCollection, never()).deleteMany(any(Bson.class));
+    }
+
+    @Test
+    void testDeleteCustomer_WhenNoDependency_ShouldDeleteSuccessfully() {
+        // Arrange
+        ObjectId id = new ObjectId();
+
+        // 1. Simulate customer found
+        when(customerCollection.find(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(new Document("_id", id).append("name", "Ali"));
+
+        // 2. Simulate Dependency Checker saying "NO, I don't have data"
+        when(dependencyChecker.hasDependency(id.toString())).thenReturn(false);
+
+        // Bind the mock checker
+        customerService.bindChecker(dependencyChecker);
+
+        // Act
+        String result = customerService.deleteCustomer(id.toString());
+
+        // Assert
+        assertEquals("Customer deleted successfully.", result);
+
+        // Ensure delete DID happen
         verify(customerCollection, times(1)).deleteOne(any(Bson.class));
         verify(contactCollection, times(1)).deleteMany(any(Bson.class));
     }
@@ -114,7 +182,6 @@ public class CustomerServiceImplTest {
 
         customerService.updateGroup(group);
 
-        // Verifies the manual document mapping and replace operation
         assertNotNull(group.getEditedAt());
         verify(groupCollection, times(1)).replaceOne(any(Bson.class), any(Document.class));
     }

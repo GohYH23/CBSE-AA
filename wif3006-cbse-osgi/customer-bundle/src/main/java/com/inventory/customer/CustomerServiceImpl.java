@@ -1,5 +1,6 @@
 package com.inventory.customer;
 
+import com.inventory.api.customer.service.CustomerDependencyChecker;
 import com.inventory.api.customer.service.CustomerService;
 import com.inventory.api.customer.model.Customer;
 import com.inventory.api.customer.model.CustomerGroup;
@@ -18,11 +19,15 @@ import org.bson.types.ObjectId;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @Component(service = CustomerService.class)
 public class CustomerServiceImpl implements CustomerService {
@@ -34,6 +39,21 @@ public class CustomerServiceImpl implements CustomerService {
     private MongoCollection<Document> groupCollection;
     private MongoCollection<Document> categoryCollection;
     private MongoCollection<Document> contactCollection;
+
+    private List<CustomerDependencyChecker> dependencyCheckers = new CopyOnWriteArrayList<>();
+
+    @Reference(
+            service = CustomerDependencyChecker.class,
+            cardinality = ReferenceCardinality.MULTIPLE,
+            policy = ReferencePolicy.DYNAMIC
+    )
+    public void bindChecker(CustomerDependencyChecker checker) {
+        dependencyCheckers.add(checker);
+    }
+
+    public void unbindChecker(CustomerDependencyChecker checker) {
+        dependencyCheckers.remove(checker);
+    }
 
     @Activate
     public void activate() {
@@ -213,13 +233,25 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    public void deleteCustomer(String id) {
-        try {
-            customerCollection.deleteOne(Filters.eq("_id", new ObjectId(id)));
-            contactCollection.deleteMany(Filters.eq("customerId", id));
-        } catch (Exception e) {
-            e.printStackTrace();
+    public String deleteCustomer(String id) {
+        // Check if customer exists
+        Customer customer = getCustomerById(id).orElse(null);
+        if (customer == null) {
+            return "Customer not found.";
         }
+
+        // Ask all checkers to verify deletion
+        for (CustomerDependencyChecker checker : dependencyCheckers) {
+            if (checker.hasDependency(id)) {
+                return "Cannot delete: " + checker.getDependencyMessage();
+            }
+        }
+
+        // If no objections, proceed with delete
+        customerCollection.deleteOne(Filters.eq("_id", new ObjectId(id)));
+        contactCollection.deleteMany(Filters.eq("customerId", id));
+
+        return "Customer deleted successfully.";
     }
 
     // GROUPS IMPLEMENTATION

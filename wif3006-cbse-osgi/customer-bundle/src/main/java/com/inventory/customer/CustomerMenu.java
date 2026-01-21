@@ -279,8 +279,8 @@ public class CustomerMenu implements ModuleMenu {
                     String delName = scanner.nextLine();
                     Optional<Customer> delOpt = customerService.getCustomerByName(delName);
                     if (delOpt.isPresent()) {
-                        customerService.deleteCustomer(delOpt.get().getId());
-                        System.out.println("Customer deleted successfully.");
+                        String message = customerService.deleteCustomer(delOpt.get().getId());
+                        System.out.println(message);
                     } else {
                         System.out.println("Customer trying to delete is not found.");
                     }

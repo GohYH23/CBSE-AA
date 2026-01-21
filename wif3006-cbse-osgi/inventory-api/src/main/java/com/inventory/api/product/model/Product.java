@@ -6,6 +6,15 @@ public class Product implements Serializable {
     // This ID is required to save the object to a file without errors
     private static final long serialVersionUID = 1L;
 
+    //this Constructor to fix the test error
+    public Product(String id, String name, double price, String productGroupId, String uomId) {
+        this.id = id;
+        this.name = name;
+        this.price = price;
+        this.productGroupId = productGroupId;
+        this.uomId = uomId;
+    }
+
     // 1. The Attributes (What a product has)
     private String id;
     private String name;

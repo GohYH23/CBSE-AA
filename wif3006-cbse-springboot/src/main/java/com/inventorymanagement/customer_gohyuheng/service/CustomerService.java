@@ -2,6 +2,8 @@ package com.inventorymanagement.customer_gohyuheng.service;
 
 import com.inventorymanagement.customer_gohyuheng.model.*;
 import com.inventorymanagement.customer_gohyuheng.repository.*;
+import com.inventorymanagement.salesorder_wongxiuhuan.repository.SalesOrderRepository;
+import com.inventorymanagement.salesorder_wongxiuhuan.model.SalesOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -21,6 +23,9 @@ public class CustomerService {
 
     @Autowired
     private CustomerContactRepository contactRepo;
+
+    @Autowired
+    private SalesOrderRepository salesOrderRepo;
 
     // --- Customer Logic ---
     public Customer createCustomer(Customer customer) {
@@ -43,10 +48,25 @@ public class CustomerService {
         return customerRepo.save(customer);
     }
 
-    public void deleteCustomer(String id) {
-        customerRepo.deleteById(id);
+    public String deleteCustomer(String id) {
+        // Check if customer exists
+        if (!customerRepo.existsById(id)) {
+            return "❌ Customer not found.";
+        }
+
+        // CHECK SALES ORDERS
+        List<SalesOrder> existingOrders = salesOrderRepo.findByCustomerId(id);
+
+        if (!existingOrders.isEmpty()) {
+            return "❌ Cannot delete: This customer has " + existingOrders.size() + " existing Sales Order(s).";
+        }
+
+        // If no orders, proceed to delete
         List<CustomerContact> contacts = contactRepo.findByCustomerId(id);
         contactRepo.deleteAll(contacts);
+
+        customerRepo.deleteById(id);
+        return "✅ Customer deleted successfully.";
     }
 
     // --- Group Logic ---

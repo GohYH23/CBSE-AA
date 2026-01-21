@@ -8,6 +8,9 @@ package com.inventorymanagement.customer_gohyuheng.service;
 
 import com.inventorymanagement.customer_gohyuheng.model.*;
 import com.inventorymanagement.customer_gohyuheng.repository.*;
+import com.inventorymanagement.salesorder_wongxiuhuan.repository.SalesOrderRepository;
+import com.inventorymanagement.salesorder_wongxiuhuan.model.SalesOrder;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -16,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -34,6 +38,9 @@ public class CustomerServiceTest {
 
     @Mock
     private CustomerContactRepository contactRepo;
+
+    @Mock
+    private SalesOrderRepository salesOrderRepo;
 
     @InjectMocks
     private CustomerService customerService;
@@ -79,14 +86,47 @@ public class CustomerServiceTest {
     @Test
     void testDeleteCustomer_ShouldCallRepoAndDeleteAssociatedContacts() {
         String customerId = "cust-123";
+
+        when(customerRepo.existsById(customerId)).thenReturn(true);
+
+        when(salesOrderRepo.findByCustomerId(customerId)).thenReturn(Collections.emptyList());
+
         List<CustomerContact> associatedContacts = List.of(new CustomerContact());
         when(contactRepo.findByCustomerId(customerId)).thenReturn(associatedContacts);
 
-        customerService.deleteCustomer(customerId);
-
-        // Verifies cascading delete logic
+        String result = customerService.deleteCustomer(customerId);
+        assertTrue(result.contains("✅ Customer deleted"));
         verify(customerRepo, times(1)).deleteById(customerId);
         verify(contactRepo, times(1)).deleteAll(associatedContacts);
+    }
+
+    @Test
+    void testDeleteCustomer_WhenOrdersExist_ShouldReturnErrorMessage() {
+        String customerId = "cust-999";
+
+        when(customerRepo.existsById(customerId)).thenReturn(true);
+
+        when(salesOrderRepo.findByCustomerId(customerId)).thenReturn(List.of(new SalesOrder()));
+
+        String result = customerService.deleteCustomer(customerId);
+
+        assertTrue(result.contains("❌ Cannot delete"));
+
+        verify(customerRepo, never()).deleteById(customerId);
+
+        verify(contactRepo, never()).deleteAll(anyList());
+    }
+
+    @Test
+    void testDeleteCustomer_WhenCustomerNotFound_ShouldReturnErrorMessage() {
+        String customerId = "cust-unknown";
+
+        when(customerRepo.existsById(customerId)).thenReturn(false);
+
+        String result = customerService.deleteCustomer(customerId);
+
+        assertTrue(result.contains("❌ Customer not found"));
+        verify(customerRepo, never()).deleteById(anyString());
     }
 
     // --- 2. GROUP FUNCTIONALITIES TESTS ---
@@ -94,13 +134,13 @@ public class CustomerServiceTest {
     @Test
     void testCreateGroup_ShouldSaveAndReturnGroup() {
         CustomerGroup group = new CustomerGroup();
-        group.setGroupName("VIP");
+        group.setGroupName("Corporate");
         when(groupRepo.save(any(CustomerGroup.class))).thenReturn(group);
 
         CustomerGroup result = customerService.createGroup(new CustomerGroup());
 
         assertNotNull(result);
-        assertEquals("VIP", result.getGroupName());
+        assertEquals("Corporate", result.getGroupName());
         verify(groupRepo, times(1)).save(any());
     }
 
@@ -139,12 +179,12 @@ public class CustomerServiceTest {
     @Test
     void testCreateCategory_ShouldSaveAndReturnCategory() {
         CustomerCategory cat = new CustomerCategory();
-        cat.setCategoryName("Retail");
+        cat.setCategoryName("Startup");
         when(categoryRepo.save(any(CustomerCategory.class))).thenReturn(cat);
 
         CustomerCategory result = customerService.createCategory(new CustomerCategory());
 
-        assertEquals("Retail", result.getCategoryName());
+        assertEquals("Startup", result.getCategoryName());
         verify(categoryRepo, times(1)).save(any());
     }
 

@@ -61,10 +61,8 @@ public class ProductMenu implements ModuleMenu {
         if (choice.equals("1")) {
             String id = generateProductId();
             System.out.println("New ID: " + id);
-
             String name = prompt(scanner, "Name: ");
 
-            // 👇 NEW CHECK: PREVENT DUPLICATE PRODUCT NAME
             for(Product p : productService.getAllProducts()) {
                 if(p.getName().equalsIgnoreCase(name)) {
                     System.out.println("❌ Error: Product '" + name + "' already exists.");
@@ -73,21 +71,15 @@ public class ProductMenu implements ModuleMenu {
             }
 
             double price = 0;
-            try {
-                price = Double.parseDouble(prompt(scanner, "Price: "));
-            } catch (NumberFormatException e) {
-                System.out.println("⚠️ Invalid price. Setting to 0.");
-            }
+            try { price = Double.parseDouble(prompt(scanner, "Price: ")); }
+            catch (NumberFormatException e) { System.out.println("⚠️ Invalid price. Setting to 0."); }
 
-            // ... (Rest of the Add logic stays the same) ...
             System.out.println("\nSelect Group:");
-            for(ProductGroup g : productService.getAllProductGroups())
-                System.out.printf("- %s (%s)%n", g.getGroupId(), g.getGroupName());
+            productService.getAllProductGroups().forEach(g -> System.out.println("- " + g.getGroupId() + ": " + g.getGroupName()));
             System.out.print("Group ID: "); String gid = scanner.nextLine();
 
             System.out.println("\nSelect UOM:");
-            for(UnitMeasure u : productService.getAllUnitMeasures())
-                System.out.printf("- %s (%s)%n", u.getUomId(), u.getSymbol());
+            productService.getAllUnitMeasures().forEach(u -> System.out.println("- " + u.getUomId() + ": " + u.getSymbol()));
             System.out.print("UOM ID: "); String uid = scanner.nextLine();
 
             Product p = new Product();
@@ -97,7 +89,6 @@ public class ProductMenu implements ModuleMenu {
             System.out.println("✅ Product Added.");
 
         } else if (choice.equals("2")) {
-            // ... (Rest of List logic) ...
             System.out.println("\n====================== PRODUCT LIST ======================");
             System.out.printf("%-5s | %-15s | %-10s | %-15s | %-10s%n", "ID", "Name", "Price", "Group", "UOM");
             System.out.println("----------------------------------------------------------");
@@ -108,7 +99,6 @@ public class ProductMenu implements ModuleMenu {
             for (Product p : productService.getAllProducts()) {
                 String gName = "N/A";
                 for (ProductGroup g : groups) if (g.getGroupId().equals(p.getProductGroupId())) gName = g.getGroupName();
-
                 String uName = "N/A";
                 for (UnitMeasure u : uoms) if (u.getUomId().equals(p.getUomId())) uName = u.getSymbol();
 
@@ -116,24 +106,19 @@ public class ProductMenu implements ModuleMenu {
                         p.getId(), p.getName(), p.getPrice(), gName, uName);
             }
             System.out.println("==========================================================");
+
         } else if (choice.equals("3")) {
-            // ... (Rest of Edit logic) ...
             System.out.print("ID to Edit: "); String id = scanner.nextLine();
             Product p = productService.getProduct(id);
             if (p != null) {
                 System.out.print("New Name (" + p.getName() + "): "); String n = scanner.nextLine();
                 if(!n.isEmpty()) p.setName(n);
-
                 System.out.print("New Price (" + p.getPrice() + "): "); String pr = scanner.nextLine();
-                if(!pr.isEmpty()) {
-                    try { p.setPrice(Double.parseDouble(pr)); } catch(Exception e) {}
-                }
-
+                if(!pr.isEmpty()) { try { p.setPrice(Double.parseDouble(pr)); } catch(Exception e) {} }
                 productService.updateProduct(p);
                 System.out.println("✅ Updated.");
             }
         } else if (choice.equals("4")) {
-            // ... (Rest of Delete logic) ...
             System.out.print("ID to Delete: "); productService.deleteProduct(scanner.nextLine());
             System.out.println("✅ Deleted.");
         }
@@ -148,22 +133,23 @@ public class ProductMenu implements ModuleMenu {
         if(c.equals("1")) {
             String id = generateGroupId();
             String name = prompt(s, "Name: ");
-
             for(ProductGroup g : productService.getAllProductGroups()) {
                 if(g.getGroupName().equalsIgnoreCase(name)) {
-                    System.out.println("Error: Group name '" + name + "' already exists.");
-                    return;
+                    System.out.println("Error: Group name '" + name + "' already exists."); return;
                 }
             }
-
             String desc = prompt(s, "Desc: ");
             productService.addProductGroup(new ProductGroup(id, name, desc));
             System.out.println("Group Added.");
 
         } else if(c.equals("2")) {
-            System.out.printf("%-5s | %-15s | %-20s%n", "ID", "Name", "Description");
+            // 👇 IMPROVED TABLE
+            System.out.println("\n======================== GROUP LIST ========================");
+            System.out.printf("%-6s | %-20s | %-30s%n", "ID", "Name", "Description");
+            System.out.println("------------------------------------------------------------");
             for(ProductGroup g : productService.getAllProductGroups())
-                System.out.printf("%-5s | %-15s | %-20s%n", g.getGroupId(), g.getGroupName(), g.getDescription());
+                System.out.printf("%-6s | %-20s | %-30s%n", g.getGroupId(), g.getGroupName(), g.getDescription());
+            System.out.println("============================================================");
 
         } else if(c.equals("3")) {
             System.out.print("ID to Edit: "); String id = s.nextLine();
@@ -174,8 +160,7 @@ public class ProductMenu implements ModuleMenu {
                     System.out.print("New Desc ("+g.getDescription()+"): "); String d = s.nextLine();
                     if(!d.isEmpty()) g.setDescription(d);
                     productService.updateProductGroup(g);
-                    System.out.println("Group Updated.");
-                    return;
+                    System.out.println("Group Updated."); return;
                 }
             }
             System.out.println("Group not found.");
@@ -186,12 +171,8 @@ public class ProductMenu implements ModuleMenu {
             for(Product p : productService.getAllProducts()) {
                 if(id.equals(p.getProductGroupId())) { inUse = true; break; }
             }
-            if(inUse) {
-                System.out.println("Cannot Delete: This group is used by existing products.");
-            } else {
-                productService.deleteProductGroup(id);
-                System.out.println("Deleted.");
-            }
+            if(inUse) System.out.println("Cannot Delete: This group is used by existing products.");
+            else { productService.deleteProductGroup(id); System.out.println("Deleted."); }
         }
     }
 
@@ -204,26 +185,25 @@ public class ProductMenu implements ModuleMenu {
         if(c.equals("1")) {
             String id = generateUomId();
             String name = prompt(s, "Name: ");
-
-            // 👇 NEW CHECK: PREVENT DUPLICATE NAME
             for(UnitMeasure u : productService.getAllUnitMeasures()) {
                 if(u.getUnitName().equalsIgnoreCase(name)) {
-                    System.out.println("❌ Error: UOM '" + name + "' already exists.");
-                    return;
+                    System.out.println("❌ Error: UOM '" + name + "' already exists."); return;
                 }
             }
-
             String sym = prompt(s, "Symbol: ");
             productService.addUnitMeasure(new UnitMeasure(id, name, sym));
             System.out.println("✅ UOM Added.");
 
         } else if(c.equals("2")) {
-            // ... (Rest of the code stays the same) ...
-            System.out.printf("%-5s | %-15s | %-10s%n", "ID", "Name", "Symbol");
+            // 👇 IMPROVED TABLE
+            System.out.println("\n========================= UOM LIST =========================");
+            System.out.printf("%-6s | %-20s | %-10s%n", "ID", "Name", "Symbol");
+            System.out.println("------------------------------------------------------------");
             for(UnitMeasure u : productService.getAllUnitMeasures())
-                System.out.printf("%-5s | %-15s | %-10s%n", u.getUomId(), u.getUnitName(), u.getSymbol());
+                System.out.printf("%-6s | %-20s | %-10s%n", u.getUomId(), u.getUnitName(), u.getSymbol());
+            System.out.println("============================================================");
+
         } else if(c.equals("3")) {
-            // ... (Rest of Edit logic) ...
             System.out.print("ID to Edit: "); String id = s.nextLine();
             for(UnitMeasure u : productService.getAllUnitMeasures()) {
                 if(u.getUomId().equals(id)) {
@@ -232,28 +212,22 @@ public class ProductMenu implements ModuleMenu {
                     System.out.print("New Symbol ("+u.getSymbol()+"): "); String sy = s.nextLine();
                     if(!sy.isEmpty()) u.setSymbol(sy);
                     productService.updateUnitMeasure(u);
-                    System.out.println("✅ UOM Updated.");
-                    return;
+                    System.out.println("✅ UOM Updated."); return;
                 }
             }
             System.out.println("❌ UOM not found.");
         } else if(c.equals("4")) {
-            // ... (Rest of Delete logic) ...
             System.out.print("ID to Delete: "); String id = s.nextLine();
             boolean inUse = false;
             for(Product p : productService.getAllProducts()) {
                 if(id.equals(p.getUomId())) { inUse = true; break; }
             }
-            if(inUse) {
-                System.out.println("❌ Cannot Delete: This UOM is used by existing products.");
-            } else {
-                productService.deleteUnitMeasure(id);
-                System.out.println("✅ Deleted.");
-            }
+            if(inUse) System.out.println("❌ Cannot Delete: This UOM is used by existing products.");
+            else { productService.deleteUnitMeasure(id); System.out.println("✅ Deleted."); }
         }
     }
 
-    // --- 4. Manage Warehouses (Simplified) ---
+    // --- 4. Manage Warehouses ---
     private void handleWarehouses(Scanner s) {
         System.out.println("\n--- Warehouses ---");
         System.out.println("1. Add | 2. List | 3. Edit | 4. Delete");
@@ -261,22 +235,23 @@ public class ProductMenu implements ModuleMenu {
 
         if (c.equals("1")) {
             String name = prompt(s, "Name: ");
-
             for(Warehouse w : productService.getAllWarehouses()) {
                 if(w.getName().equalsIgnoreCase(name)) {
-                    System.out.println("Error: Warehouse '" + name + "' already exists.");
-                    return;
+                    System.out.println("Error: Warehouse '" + name + "' already exists."); return;
                 }
             }
             String desc = prompt(s, "Desc: ");
-            // Always set isSystem to false (Physical Warehouse only)
             productService.addWarehouse(new Warehouse(name, false, desc));
             System.out.println("Warehouse Added.");
 
         } else if (c.equals("2")) {
-            System.out.printf("%-15s | %-20s%n", "Name", "Description");
-            for (Warehouse w : productService.getAllWarehouses())
-                System.out.printf("%-15s | %-20s%n", w.getName(), w.getDescription());
+            // 👇 IMPROVED TABLE
+            System.out.println("\n====================== WAREHOUSE LIST ======================");
+            System.out.printf("%-20s | %-30s | %-10s%n", "Name", "Description", "Is System");
+            System.out.println("------------------------------------------------------------");
+            for(Warehouse w : productService.getAllWarehouses())
+                System.out.printf("%-20s | %-30s | %-10s%n", w.getName(), w.getDescription(), w.isSystemWarehouse() ? "Yes" : "No");
+            System.out.println("============================================================");
 
         } else if(c.equals("3")) {
             System.out.print("Name to Edit: "); String name = s.nextLine();
@@ -285,8 +260,7 @@ public class ProductMenu implements ModuleMenu {
                     System.out.print("New Desc ("+w.getDescription()+"): "); String d = s.nextLine();
                     if(!d.isEmpty()) w.setDescription(d);
                     productService.updateWarehouse(w);
-                    System.out.println("Warehouse Updated.");
-                    return;
+                    System.out.println("Warehouse Updated."); return;
                 }
             }
             System.out.println("Warehouse not found.");
@@ -297,7 +271,7 @@ public class ProductMenu implements ModuleMenu {
         }
     }
 
-    // --- 5. Manage Stock (Added Export) ---
+    // --- 5. Manage Stock ---
     private void handleStock(Scanner s) {
         System.out.println("\n--- Stock Counts ---");
         System.out.println("1. New Stock Count | 2. List History | 3. Export Report");
@@ -311,12 +285,16 @@ public class ProductMenu implements ModuleMenu {
             System.out.println("Started Stock Count: " + autoId);
 
         } else if (c.equals("2")) {
-            System.out.printf("%-10s | %-15s | %-10s%n", "ID", "Warehouse", "Date");
+            // 👇 IMPROVED TABLE
+            System.out.println("\n==================== STOCK COUNT HISTORY ===================");
+            System.out.printf("%-10s | %-20s | %-12s | %-10s%n", "ID", "Warehouse", "Date", "Status");
+            System.out.println("------------------------------------------------------------");
             for(StockCount sc : productService.getAllStockCounts())
-                System.out.printf("%-10s | %-15s | %-10s%n", sc.getCountId(), sc.getWarehouseName(), sc.getDate());
+                System.out.printf("%-10s | %-20s | %-12s | %-10s%n", sc.getCountId(), sc.getWarehouseName(), sc.getDate(), sc.getStatus());
+            System.out.println("============================================================");
 
         } else if (c.equals("3")) {
-            System.out.println("4Generating PDF Report...");
+            System.out.println("Generating PDF Report...");
             try { Thread.sleep(1000); } catch(Exception e) {}
             System.out.println("Report Exported to C:/Downloads/stock_report.pdf");
         }

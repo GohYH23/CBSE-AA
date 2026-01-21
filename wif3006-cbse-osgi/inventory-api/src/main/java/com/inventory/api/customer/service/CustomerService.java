@@ -22,7 +22,7 @@ public interface CustomerService {
 
     void updateCustomer(Customer customer);
 
-    void deleteCustomer(String id);
+    String deleteCustomer(String id);
 
     // ================= GROUPS =================
     void createGroup(CustomerGroup group);

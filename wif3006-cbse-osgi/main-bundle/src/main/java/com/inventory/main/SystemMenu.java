@@ -19,20 +19,20 @@ public class SystemMenu {
     private volatile List<ModuleMenu> modules = new ArrayList<>();
 
     public void bindMenu(ModuleMenu menu) {
-        for (ModuleMenu existing : modules) {
-            if (existing.getModuleName().equals(menu.getModuleName())) {
-                System.out.println("⚠️ Duplicate Module Ignored: " + menu.getModuleName());
-                return; // Stop! Don't add it again.
-            }
-        }
+        synchronized(modules) {
+            // Check if we already have this specific instance
+            if (modules.contains(menu)) return;
 
-        // If it's new, add it.
-        modules.add(menu);
-        System.out.println("✅ Module Added: " + menu.getModuleName());
+            modules.removeIf(m -> m.getModuleName().equals(menu.getModuleName()));
+
+            modules.add(menu);
+
+            System.out.println("Module Registered: " + menu.getModuleName());
+        }
     }
     public void unbindMenu(ModuleMenu menu) {
         modules.remove(menu);
-        System.out.println("❌ Module Removed: " + menu.getModuleName());
+        System.out.println("Module Removed: " + menu.getModuleName());
     }
 
     @Activate
@@ -42,7 +42,7 @@ public class SystemMenu {
     }
 
     private void showMainMenu() {
-        try { Thread.sleep(1000); } catch (Exception e) {} // Wait for others to load
+        try { Thread.sleep(3000); } catch (Exception e) {} // Wait for others to load
 
         Scanner scanner = new Scanner(System.in);
         while (true) {

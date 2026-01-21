@@ -1,6 +1,7 @@
 package com.inventory.api.salesorder.model;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -10,20 +11,21 @@ public class SalesOrder implements Serializable {
     private LocalDate orderDate;
     private String customerId;
     private String taxId;
-    private String orderStatus;
+    private String orderStatus; // PENDING, CONFIRMED, PROCESSING, COMPLETED, CANCELLED
     private String description;
     private String createdAt;
     private String editedAt;
 
     public SalesOrder() {
         this.createdAt = LocalDateTime.now().toString();
+        this.orderStatus = "PENDING";
     }
 
     public SalesOrder(LocalDate orderDate, String customerId, String taxId, String orderStatus, String description) {
         this.orderDate = orderDate;
         this.customerId = customerId;
         this.taxId = taxId;
-        this.orderStatus = orderStatus;
+        this.orderStatus = orderStatus != null ? orderStatus : "PENDING";
         this.description = description;
         this.createdAt = LocalDateTime.now().toString();
     }

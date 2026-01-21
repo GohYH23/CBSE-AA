@@ -8,9 +8,9 @@ public class SalesOrderItem implements Serializable {
     private String id;
     private String salesOrderId;
     private String productId;
-    private String productNumber;
     private BigDecimal unitPrice;
     private int quantity;
+    private String productNumber;
     private String createdAt;
     private String editedAt;
 
@@ -18,12 +18,12 @@ public class SalesOrderItem implements Serializable {
         this.createdAt = LocalDateTime.now().toString();
     }
 
-    public SalesOrderItem(String salesOrderId, String productId, String productNumber, BigDecimal unitPrice, int quantity) {
+    public SalesOrderItem(String salesOrderId, String productId, BigDecimal unitPrice, int quantity, String productNumber) {
         this.salesOrderId = salesOrderId;
         this.productId = productId;
-        this.productNumber = productNumber;
         this.unitPrice = unitPrice;
         this.quantity = quantity;
+        this.productNumber = productNumber;
         this.createdAt = LocalDateTime.now().toString();
     }
 
@@ -37,14 +37,14 @@ public class SalesOrderItem implements Serializable {
     public String getProductId() { return productId; }
     public void setProductId(String productId) { this.productId = productId; }
 
-    public String getProductNumber() { return productNumber; }
-    public void setProductNumber(String productNumber) { this.productNumber = productNumber; }
-
     public BigDecimal getUnitPrice() { return unitPrice; }
     public void setUnitPrice(BigDecimal unitPrice) { this.unitPrice = unitPrice; }
 
     public int getQuantity() { return quantity; }
     public void setQuantity(int quantity) { this.quantity = quantity; }
+
+    public String getProductNumber() { return productNumber; }
+    public void setProductNumber(String productNumber) { this.productNumber = productNumber; }
 
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
@@ -54,6 +54,6 @@ public class SalesOrderItem implements Serializable {
 
     @Override
     public String toString() {
-        return "SalesOrderItem{productId='" + productId + "', quantity=" + quantity + "}";
+        return "SalesOrderItem{productId='" + productId + "', quantity=" + quantity + ", unitPrice=" + unitPrice + "}";
     }
 }

@@ -9,19 +9,20 @@ public class DeliveryOrder implements Serializable {
     private String deliveryNumber;
     private LocalDate deliveryDate;
     private String salesOrderId;
-    private String status;
+    private String status; // PENDING, IN_TRANSIT, DELIVERED, CANCELLED
     private String description;
     private String createdAt;
     private String editedAt;
 
     public DeliveryOrder() {
         this.createdAt = LocalDateTime.now().toString();
+        this.status = "PENDING";
     }
 
     public DeliveryOrder(LocalDate deliveryDate, String salesOrderId, String status, String description) {
         this.deliveryDate = deliveryDate;
         this.salesOrderId = salesOrderId;
-        this.status = status;
+        this.status = status != null ? status : "PENDING"; // Default to PENDING if null
         this.description = description;
         this.createdAt = LocalDateTime.now().toString();
     }

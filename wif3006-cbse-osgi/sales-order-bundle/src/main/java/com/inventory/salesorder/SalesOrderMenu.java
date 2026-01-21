@@ -30,9 +30,10 @@ public class SalesOrderMenu implements ModuleMenu {
 
     @Override
     public String getModuleName() {
-        return "Sales & Order Module";
+        return "Sales Order Management Module";
     }
 
+    // Format LocalDateTime string to readable format
     private String formatDate(String dateStr) {
         if (dateStr == null || dateStr.trim().isEmpty()) {
             return "-";
@@ -45,6 +46,7 @@ public class SalesOrderMenu implements ModuleMenu {
         }
     }
 
+    // Format LocalDate to readable format
     private String formatLocalDate(LocalDate date) {
         if (date == null) {
             return "N/A";
@@ -52,6 +54,7 @@ public class SalesOrderMenu implements ModuleMenu {
         return date.format(DATE_FORMATTER);
     }
 
+    // Helper to allow skipping updates on Edit
     private String promptForUpdate(Scanner scanner, String label, String currentValue) {
         System.out.print(label + " [" + currentValue + "]: ");
         String input = scanner.nextLine();

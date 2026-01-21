@@ -2,6 +2,7 @@ package com.inventorymanagement;
 
 import com.inventorymanagement.customer_gohyuheng.CustomerMenu;
 import com.inventorymanagement.product_ericleechunkiat.ProductMenu;
+import com.inventorymanagement.purchaseorder_ooiweiying.PurchaseOrderMenu;
 import com.inventorymanagement.salesorder_wongxiuhuan.SalesOrderMenu;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -23,6 +24,9 @@ public class InventoryManagementApplication implements CommandLineRunner {
 
     @Autowired
     private ProductMenu productMenu;
+
+    @Autowired
+    private PurchaseOrderMenu purchaseOrderMenu;
 
     public static void main(String[] args) {
         SpringApplication.run(InventoryManagementApplication.class, args);
@@ -54,7 +58,7 @@ public class InventoryManagementApplication implements CommandLineRunner {
                     customerMenu.start(scanner);
                     break;
                 case "2":
-                    System.out.println("This module is not ready yet.");
+                    purchaseOrderMenu.start(scanner);
                     break;
                 case "3":
                     salesOrderMenu.start(scanner);

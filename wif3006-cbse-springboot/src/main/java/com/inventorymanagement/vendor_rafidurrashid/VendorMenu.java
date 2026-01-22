@@ -1,4 +1,4 @@
-
+package com.inventorymanagement.vendor_rafidurrashid;
 
 import com.inventorymanagement.salesorder_wongxiuhuan.model.*;
 import com.inventorymanagement.salesorder_wongxiuhuan.service.SalesOrderService;

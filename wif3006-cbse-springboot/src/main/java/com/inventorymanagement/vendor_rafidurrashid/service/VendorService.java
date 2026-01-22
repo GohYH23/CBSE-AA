@@ -1,4 +1,4 @@
-package com.inventorymanagement.vendor_Rafid.service;
+package com.inventorymanagement.vendor_rafidurrashid.service;
 
 
 
@@ -6,8 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.inventorymanagement.vendor_Rafid.model.*;
-import com.inventorymanagement.vendor_Rafid.repository.*;
+import com.inventorymanagement.vendor_rafidurrashid.model.*;
+import com.inventorymanagement.vendor_rafidurrashid.repository.*;
 
 import java.time.LocalDateTime;
 import java.util.List;

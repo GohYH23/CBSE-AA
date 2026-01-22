@@ -227,6 +227,27 @@ public class ProductServiceImpl implements ProductService {
         return list;
     }
 
+    // 👇 NEWLY ADDED METHOD TO FIX THE ERROR
+    @Override
+    public String completeStockCount(String countId) {
+        try {
+            // Update the document where "id" matches the countId
+            // Note: We use "id" here because addStockCount() uses "id" as the key
+            com.mongodb.client.result.UpdateResult result = stockCountCollection.updateOne(
+                    Filters.eq("id", countId),
+                    Updates.set("status", "Completed")
+            );
+
+            if (result.getMatchedCount() > 0) {
+                return "✅ Stock Count " + countId + " marked as Completed.";
+            } else {
+                return "❌ Error: Stock Count ID not found.";
+            }
+        } catch (Exception e) {
+            return "❌ Database Error: " + e.getMessage();
+        }
+    }
+
     @Override
     public void showMenu(Scanner scanner) {
         // Handled by Menu Bundle

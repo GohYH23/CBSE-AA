@@ -151,6 +151,19 @@ public class ProductService {
         uomRepository.deleteById(id);
     }
 
+    // Inside ProductService.class
+
+    public String completeStockCount(String countId) {
+        Optional<StockCount> scOpt = stockRepository.findById(countId);
+        if (scOpt.isPresent()) {
+            StockCount sc = scOpt.get();
+            sc.setStatus("Completed"); // Updates status
+            stockRepository.save(sc);
+            return "Stock Count " + countId + " marked as Completed.";
+        }
+        return " Error: Stock Count ID not found.";
+    }
+
     // ================= WAREHOUSE LOGIC =================
     public List<Warehouse> getAllWarehouses() { return warehouseRepository.findAll(); }
     public Warehouse addWarehouse(Warehouse w) { return warehouseRepository.save(w); }

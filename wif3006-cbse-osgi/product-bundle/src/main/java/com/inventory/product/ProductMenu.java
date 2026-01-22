@@ -6,6 +6,7 @@ import com.inventory.api.product.service.ProductService;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import java.util.Scanner;
+import java.util.List;
 
 @Component(service = ModuleMenu.class, immediate = true)
 public class ProductMenu implements ModuleMenu {
@@ -21,7 +22,7 @@ public class ProductMenu implements ModuleMenu {
 
     private void showMainMenu(Scanner scanner) {
         while (true) {
-            System.out.println("\n=== PRODUCT MANAGEMENT HUB ===");
+            System.out.println("\n=== PRODUCT MANAGEMENT HUB (OSGi) ===");
             System.out.println("1. Manage Products");
             System.out.println("2. Manage Product Groups");
             System.out.println("3. Manage Unit Measures");
@@ -55,12 +56,11 @@ public class ProductMenu implements ModuleMenu {
     // --- 1. Manage Products ---
     private void handleProducts(Scanner scanner) {
         System.out.println("\n--- Products ---");
-        // ADDED: 0. Back
         System.out.println("1. Add | 2. List | 3. Edit | 4. Delete | 0. Back");
         String choice = scanner.nextLine();
 
         if (choice.equals("0")) {
-            return; // Go back
+            return;
         } else if (choice.equals("1")) {
             String id = generateProductId();
             System.out.println("New ID: " + id);
@@ -139,7 +139,6 @@ public class ProductMenu implements ModuleMenu {
     // --- 2. Manage Groups ---
     private void handleGroups(Scanner s) {
         System.out.println("\n--- Groups ---");
-        // ADDED: 0. Back
         System.out.println("1. Add | 2. List | 3. Edit | 4. Delete | 0. Back");
         String c = s.nextLine();
 
@@ -197,7 +196,6 @@ public class ProductMenu implements ModuleMenu {
     // --- 3. Manage UOM ---
     private void handleUOM(Scanner s) {
         System.out.println("\n--- UOM ---");
-        // ADDED: 0. Back
         System.out.println("1. Add | 2. List | 3. Edit | 4. Delete | 0. Back");
         String c = s.nextLine();
 
@@ -254,7 +252,6 @@ public class ProductMenu implements ModuleMenu {
     // --- 4. Manage Warehouses ---
     private void handleWarehouses(Scanner s) {
         System.out.println("\n--- Warehouses ---");
-        // ADDED: 0. Back
         System.out.println("1. Add | 2. List | 3. Edit | 4. Delete | 0. Back");
         String c = s.nextLine();
 
@@ -302,18 +299,41 @@ public class ProductMenu implements ModuleMenu {
         }
     }
 
-    // --- 5. Manage Stock ---
+    // --- 5. Manage Stock (UPDATED TO MATCH SPRING BOOT) ---
     private void handleStock(Scanner s) {
         System.out.println("\n--- Stock Counts ---");
-        // ADDED: 0. Back
-        System.out.println("1. New Stock Count | 2. List History | 3. Export Report | 0. Back");
+        // Updated Menu Options
+        System.out.println("1. New Stock Count | 2. List History | 3. Export Report | 4. Complete Count | 0. Back");
         String c = s.nextLine();
 
         if (c.equals("0")) {
             return;
         } else if (c.equals("1")) {
+            // --- SMART VALIDATION ---
+            List<Warehouse> warehouses = productService.getAllWarehouses();
+            if (warehouses.isEmpty()) {
+                System.out.println("❌ Error: No warehouses exist. Create one in Menu 4 first.");
+                return;
+            }
+
+            System.out.println("Available Warehouses:");
+            for(Warehouse w : warehouses) System.out.println("- " + w.getName());
+
+            String wh = "";
+            while(true) {
+                System.out.print("Enter Warehouse Name: ");
+                wh = s.nextLine().trim();
+                String finalWh = wh;
+                boolean exists = false;
+                for(Warehouse w : warehouses) {
+                    if(w.getName().equalsIgnoreCase(finalWh)) { exists = true; break; }
+                }
+                if(exists) break;
+                System.out.println("❌ Invalid Warehouse. Try again.");
+            }
+            // --- END SMART VALIDATION ---
+
             String autoId = "SC-" + System.currentTimeMillis() % 10000;
-            String wh = prompt(s, "Warehouse Name: ");
             String date = prompt(s, "Date (YYYY-MM-DD): ");
             productService.addStockCount(new StockCount(autoId, wh, "Pending", date));
             System.out.println("✅ Started Stock Count: " + autoId);
@@ -327,9 +347,28 @@ public class ProductMenu implements ModuleMenu {
             System.out.println("============================================================");
 
         } else if (c.equals("3")) {
-            System.out.println("Generating PDF Report...");
-            try { Thread.sleep(1000); } catch(Exception e) {}
-            System.out.println("✅ Report Exported to C:/Downloads/stock_report.pdf");
+            // --- MOCK EXPORT ---
+            System.out.print("Enter Stock Count ID to Export: ");
+            String id = s.nextLine();
+            boolean found = false;
+            for(StockCount sc : productService.getAllStockCounts()) {
+                if(sc.getCountId().equals(id)) { found = true; break; }
+            }
+
+            if(found) {
+                System.out.println("Generating PDF Report...");
+                try { Thread.sleep(800); } catch(Exception e) {}
+                System.out.println("✅ Report Exported: C:/Downloads/StockReport_" + id + ".pdf");
+            } else {
+                System.out.println("❌ Error: Stock Count ID not found.");
+            }
+
+        } else if (c.equals("4")) {
+            // --- COMPLETE COUNT ---
+            System.out.print("Enter Stock Count ID to Complete: ");
+            String id = s.nextLine();
+            // Calls the new method in ProductService interface
+            System.out.println(productService.completeStockCount(id));
         }
     }
 

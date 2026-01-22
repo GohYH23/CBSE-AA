@@ -5,23 +5,28 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document(collection = "product_groups")
 public class ProductGroup {
+
     @Id
-    private String groupId;
+    private String id;
     private String groupName;
     private String description;
 
+    // --- CONSTRUCTORS ---
     public ProductGroup() {}
 
-    public ProductGroup(String groupId, String groupName, String description) {
-        this.groupId = groupId;
+    public ProductGroup(String id, String groupName, String description) {
+        this.id = id;
         this.groupName = groupName;
         this.description = description;
     }
 
-    public String getGroupId() { return groupId; }
-    public void setGroupId(String groupId) { this.groupId = groupId; }
+    // --- GETTERS AND SETTERS (The Missing Part!) ---
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
+
     public String getGroupName() { return groupName; }
     public void setGroupName(String groupName) { this.groupName = groupName; }
+
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 }

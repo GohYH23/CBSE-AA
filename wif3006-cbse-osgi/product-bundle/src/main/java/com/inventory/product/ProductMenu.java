@@ -55,10 +55,13 @@ public class ProductMenu implements ModuleMenu {
     // --- 1. Manage Products ---
     private void handleProducts(Scanner scanner) {
         System.out.println("\n--- Products ---");
-        System.out.println("1. Add | 2. List | 3. Edit | 4. Delete");
+        // ADDED: 0. Back
+        System.out.println("1. Add | 2. List | 3. Edit | 4. Delete | 0. Back");
         String choice = scanner.nextLine();
 
-        if (choice.equals("1")) {
+        if (choice.equals("0")) {
+            return; // Go back
+        } else if (choice.equals("1")) {
             String id = generateProductId();
             System.out.println("New ID: " + id);
             String name = prompt(scanner, "Name: ");
@@ -108,7 +111,10 @@ public class ProductMenu implements ModuleMenu {
             System.out.println("==========================================================");
 
         } else if (choice.equals("3")) {
-            System.out.print("ID to Edit: "); String id = scanner.nextLine();
+            System.out.print("ID to Edit (0 to cancel): ");
+            String id = scanner.nextLine();
+            if(id.equals("0")) return;
+
             Product p = productService.getProduct(id);
             if (p != null) {
                 System.out.print("New Name (" + p.getName() + "): "); String n = scanner.nextLine();
@@ -117,20 +123,29 @@ public class ProductMenu implements ModuleMenu {
                 if(!pr.isEmpty()) { try { p.setPrice(Double.parseDouble(pr)); } catch(Exception e) {} }
                 productService.updateProduct(p);
                 System.out.println("✅ Updated.");
+            } else {
+                System.out.println("❌ Not found.");
             }
         } else if (choice.equals("4")) {
-            System.out.print("ID to Delete: "); productService.deleteProduct(scanner.nextLine());
-            System.out.println("✅ Deleted.");
+            System.out.print("ID to Delete (0 to cancel): ");
+            String id = scanner.nextLine();
+            if(!id.equals("0")) {
+                productService.deleteProduct(id);
+                System.out.println("✅ Deleted.");
+            }
         }
     }
 
     // --- 2. Manage Groups ---
     private void handleGroups(Scanner s) {
         System.out.println("\n--- Groups ---");
-        System.out.println("1. Add | 2. List | 3. Edit | 4. Delete");
+        // ADDED: 0. Back
+        System.out.println("1. Add | 2. List | 3. Edit | 4. Delete | 0. Back");
         String c = s.nextLine();
 
-        if(c.equals("1")) {
+        if (c.equals("0")) {
+            return;
+        } else if(c.equals("1")) {
             String id = generateGroupId();
             String name = prompt(s, "Name: ");
             for(ProductGroup g : productService.getAllProductGroups()) {
@@ -140,10 +155,9 @@ public class ProductMenu implements ModuleMenu {
             }
             String desc = prompt(s, "Desc: ");
             productService.addProductGroup(new ProductGroup(id, name, desc));
-            System.out.println("Group Added.");
+            System.out.println("✅ Group Added.");
 
         } else if(c.equals("2")) {
-            // 👇 IMPROVED TABLE
             System.out.println("\n======================== GROUP LIST ========================");
             System.out.printf("%-6s | %-20s | %-30s%n", "ID", "Name", "Description");
             System.out.println("------------------------------------------------------------");
@@ -152,7 +166,9 @@ public class ProductMenu implements ModuleMenu {
             System.out.println("============================================================");
 
         } else if(c.equals("3")) {
-            System.out.print("ID to Edit: "); String id = s.nextLine();
+            System.out.print("ID to Edit (0 to cancel): "); String id = s.nextLine();
+            if(id.equals("0")) return;
+
             for(ProductGroup g : productService.getAllProductGroups()) {
                 if(g.getGroupId().equals(id)) {
                     System.out.print("New Name ("+g.getGroupName()+"): "); String n = s.nextLine();
@@ -160,29 +176,34 @@ public class ProductMenu implements ModuleMenu {
                     System.out.print("New Desc ("+g.getDescription()+"): "); String d = s.nextLine();
                     if(!d.isEmpty()) g.setDescription(d);
                     productService.updateProductGroup(g);
-                    System.out.println("Group Updated."); return;
+                    System.out.println("✅ Group Updated."); return;
                 }
             }
-            System.out.println("Group not found.");
+            System.out.println("❌ Group not found.");
 
         } else if(c.equals("4")) {
-            System.out.print("ID to Delete: "); String id = s.nextLine();
+            System.out.print("ID to Delete (0 to cancel): "); String id = s.nextLine();
+            if(id.equals("0")) return;
+
             boolean inUse = false;
             for(Product p : productService.getAllProducts()) {
                 if(id.equals(p.getProductGroupId())) { inUse = true; break; }
             }
-            if(inUse) System.out.println("Cannot Delete: This group is used by existing products.");
-            else { productService.deleteProductGroup(id); System.out.println("Deleted."); }
+            if(inUse) System.out.println("❌ Cannot Delete: This group is used by existing products.");
+            else { productService.deleteProductGroup(id); System.out.println("✅ Deleted."); }
         }
     }
 
     // --- 3. Manage UOM ---
     private void handleUOM(Scanner s) {
         System.out.println("\n--- UOM ---");
-        System.out.println("1. Add | 2. List | 3. Edit | 4. Delete");
+        // ADDED: 0. Back
+        System.out.println("1. Add | 2. List | 3. Edit | 4. Delete | 0. Back");
         String c = s.nextLine();
 
-        if(c.equals("1")) {
+        if (c.equals("0")) {
+            return;
+        } else if(c.equals("1")) {
             String id = generateUomId();
             String name = prompt(s, "Name: ");
             for(UnitMeasure u : productService.getAllUnitMeasures()) {
@@ -195,7 +216,6 @@ public class ProductMenu implements ModuleMenu {
             System.out.println("✅ UOM Added.");
 
         } else if(c.equals("2")) {
-            // 👇 IMPROVED TABLE
             System.out.println("\n========================= UOM LIST =========================");
             System.out.printf("%-6s | %-20s | %-10s%n", "ID", "Name", "Symbol");
             System.out.println("------------------------------------------------------------");
@@ -204,7 +224,9 @@ public class ProductMenu implements ModuleMenu {
             System.out.println("============================================================");
 
         } else if(c.equals("3")) {
-            System.out.print("ID to Edit: "); String id = s.nextLine();
+            System.out.print("ID to Edit (0 to cancel): "); String id = s.nextLine();
+            if(id.equals("0")) return;
+
             for(UnitMeasure u : productService.getAllUnitMeasures()) {
                 if(u.getUomId().equals(id)) {
                     System.out.print("New Name ("+u.getUnitName()+"): "); String n = s.nextLine();
@@ -217,7 +239,9 @@ public class ProductMenu implements ModuleMenu {
             }
             System.out.println("❌ UOM not found.");
         } else if(c.equals("4")) {
-            System.out.print("ID to Delete: "); String id = s.nextLine();
+            System.out.print("ID to Delete (0 to cancel): "); String id = s.nextLine();
+            if(id.equals("0")) return;
+
             boolean inUse = false;
             for(Product p : productService.getAllProducts()) {
                 if(id.equals(p.getUomId())) { inUse = true; break; }
@@ -230,10 +254,13 @@ public class ProductMenu implements ModuleMenu {
     // --- 4. Manage Warehouses ---
     private void handleWarehouses(Scanner s) {
         System.out.println("\n--- Warehouses ---");
-        System.out.println("1. Add | 2. List | 3. Edit | 4. Delete");
+        // ADDED: 0. Back
+        System.out.println("1. Add | 2. List | 3. Edit | 4. Delete | 0. Back");
         String c = s.nextLine();
 
-        if (c.equals("1")) {
+        if (c.equals("0")) {
+            return;
+        } else if (c.equals("1")) {
             String name = prompt(s, "Name: ");
             for(Warehouse w : productService.getAllWarehouses()) {
                 if(w.getName().equalsIgnoreCase(name)) {
@@ -242,10 +269,9 @@ public class ProductMenu implements ModuleMenu {
             }
             String desc = prompt(s, "Desc: ");
             productService.addWarehouse(new Warehouse(name, false, desc));
-            System.out.println("Warehouse Added.");
+            System.out.println("✅ Warehouse Added.");
 
         } else if (c.equals("2")) {
-            // 👇 IMPROVED TABLE
             System.out.println("\n====================== WAREHOUSE LIST ======================");
             System.out.printf("%-20s | %-30s | %-10s%n", "Name", "Description", "Is System");
             System.out.println("------------------------------------------------------------");
@@ -254,38 +280,45 @@ public class ProductMenu implements ModuleMenu {
             System.out.println("============================================================");
 
         } else if(c.equals("3")) {
-            System.out.print("Name to Edit: "); String name = s.nextLine();
+            System.out.print("Name to Edit (0 to cancel): "); String name = s.nextLine();
+            if(name.equals("0")) return;
+
             for(Warehouse w : productService.getAllWarehouses()) {
                 if(w.getName().equals(name)) {
                     System.out.print("New Desc ("+w.getDescription()+"): "); String d = s.nextLine();
                     if(!d.isEmpty()) w.setDescription(d);
                     productService.updateWarehouse(w);
-                    System.out.println("Warehouse Updated."); return;
+                    System.out.println("✅ Warehouse Updated."); return;
                 }
             }
-            System.out.println("Warehouse not found.");
+            System.out.println("❌ Warehouse not found.");
 
         } else if(c.equals("4")) {
-            System.out.print("Name to Delete: "); productService.deleteWarehouse(s.nextLine());
-            System.out.println("Deleted.");
+            System.out.print("Name to Delete (0 to cancel): "); String name = s.nextLine();
+            if(!name.equals("0")) {
+                productService.deleteWarehouse(name);
+                System.out.println("✅ Deleted.");
+            }
         }
     }
 
     // --- 5. Manage Stock ---
     private void handleStock(Scanner s) {
         System.out.println("\n--- Stock Counts ---");
-        System.out.println("1. New Stock Count | 2. List History | 3. Export Report");
+        // ADDED: 0. Back
+        System.out.println("1. New Stock Count | 2. List History | 3. Export Report | 0. Back");
         String c = s.nextLine();
 
-        if (c.equals("1")) {
+        if (c.equals("0")) {
+            return;
+        } else if (c.equals("1")) {
             String autoId = "SC-" + System.currentTimeMillis() % 10000;
             String wh = prompt(s, "Warehouse Name: ");
             String date = prompt(s, "Date (YYYY-MM-DD): ");
             productService.addStockCount(new StockCount(autoId, wh, "Pending", date));
-            System.out.println("Started Stock Count: " + autoId);
+            System.out.println("✅ Started Stock Count: " + autoId);
 
         } else if (c.equals("2")) {
-            // 👇 IMPROVED TABLE
             System.out.println("\n==================== STOCK COUNT HISTORY ===================");
             System.out.printf("%-10s | %-20s | %-12s | %-10s%n", "ID", "Warehouse", "Date", "Status");
             System.out.println("------------------------------------------------------------");
@@ -296,7 +329,7 @@ public class ProductMenu implements ModuleMenu {
         } else if (c.equals("3")) {
             System.out.println("Generating PDF Report...");
             try { Thread.sleep(1000); } catch(Exception e) {}
-            System.out.println("Report Exported to C:/Downloads/stock_report.pdf");
+            System.out.println("✅ Report Exported to C:/Downloads/stock_report.pdf");
         }
     }
 

@@ -11,7 +11,6 @@ import java.util.Optional;
 @Service
 public class ProductService {
 
-    // Inject ALL Repositories here
     @Autowired private ProductRepository productRepository;
     @Autowired private ProductGroupRepository groupRepository;
     @Autowired private UnitMeasureRepository uomRepository;
@@ -26,6 +25,10 @@ public class ProductService {
         if (productRepository.existsByNameIgnoreCase(product.getName())) {
             throw new RuntimeException("Error: Product '" + product.getName() + "' already exists.");
         }
+
+        // Optional: If you want Products to be 1, 2, 3 as well, add the logic here.
+        // For now, we let the Menu or MongoDB handle Product IDs, or we can use the same logic below.
+
         return productRepository.save(product);
     }
 
@@ -41,38 +44,99 @@ public class ProductService {
 
     public void deleteProduct(String id) { productRepository.deleteById(id); }
 
-    // ================= GROUP LOGIC =================
-    public List<ProductGroup> getAllGroups() { return groupRepository.findAll(); }
+    // ================= GROUP LOGIC (UPDATED FOR 1, 2, 3 IDs) =================
 
-    public ProductGroup addGroup(ProductGroup group) {
-        if (groupRepository.existsByGroupNameIgnoreCase(group.getGroupName())) {
-            throw new RuntimeException("Error: Group '" + group.getGroupName() + "' already exists.");
+    public List<ProductGroup> getAllProductGroups() { return groupRepository.findAll(); }
+
+    public Optional<ProductGroup> getProductGroupById(String id) {
+        return groupRepository.findById(id);
+    }
+
+    // UPDATED: Auto-Increment ID Logic
+    public String createProductGroup(String name, String description) {
+        if (groupRepository.existsByGroupNameIgnoreCase(name)) {
+            return "❌ Error: Group '" + name + "' already exists.";
         }
-        return groupRepository.save(group);
+
+        // Logic: Find the highest ID and add 1
+        List<ProductGroup> allGroups = groupRepository.findAll();
+        int nextId = 1; // Start at 1 if list is empty
+
+        if (!allGroups.isEmpty()) {
+            int maxId = allGroups.stream()
+                    .mapToInt(g -> {
+                        try {
+                            return Integer.parseInt(g.getId());
+                        } catch (NumberFormatException e) {
+                            return 0; // Ignore weird IDs
+                        }
+                    })
+                    .max()
+                    .orElse(0);
+            nextId = maxId + 1;
+        }
+
+        ProductGroup group = new ProductGroup();
+        group.setId(String.valueOf(nextId)); // Sets ID to "1", "2", etc.
+        group.setGroupName(name);
+        group.setDescription(description);
+        groupRepository.save(group);
+        return "✅ Group Added with ID: " + nextId;
     }
 
-    public ProductGroup updateGroup(String id, ProductGroup newDetails) {
-        return groupRepository.findById(id).map(g -> {
-            g.setGroupName(newDetails.getGroupName());
-            g.setDescription(newDetails.getDescription());
-            return groupRepository.save(g);
-        }).orElseThrow(() -> new RuntimeException("Group not found"));
+    public String updateProductGroup(String id, String newName, String newDesc) {
+        Optional<ProductGroup> existingGroup = groupRepository.findById(id);
+
+        if (existingGroup.isPresent()) {
+            ProductGroup group = existingGroup.get();
+            group.setGroupName(newName);
+            group.setDescription(newDesc);
+            groupRepository.save(group);
+            return "✅ Group Updated Successfully.";
+        } else {
+            return "❌ Error: Group ID not found.";
+        }
     }
 
-    public void deleteGroup(String id) {
+    public String deleteProductGroup(String id) {
         if (!productRepository.findByProductGroupId(id).isEmpty()) {
-            throw new RuntimeException("Cannot Delete: Group is in use.");
+            return "⚠️ Cannot Delete: Group is in use.";
         }
-        groupRepository.deleteById(id);
+        if (groupRepository.existsById(id)) {
+            groupRepository.deleteById(id);
+            return "✅ Group Deleted.";
+        }
+        return "❌ Group not found.";
     }
 
-    // ================= UOM LOGIC =================
+    // ================= UOM LOGIC (UPDATED FOR 1, 2, 3 IDs) =================
     public List<UnitMeasure> getAllUOMs() { return uomRepository.findAll(); }
 
+    // UPDATED: Auto-Increment ID Logic for UOM
     public UnitMeasure addUOM(UnitMeasure uom) {
         if (uomRepository.existsByUnitNameIgnoreCase(uom.getUnitName())) {
             throw new RuntimeException("Error: UOM '" + uom.getUnitName() + "' already exists.");
         }
+
+        // Logic: Find the highest ID and add 1
+        List<UnitMeasure> allUoms = uomRepository.findAll();
+        int nextId = 1;
+
+        if (!allUoms.isEmpty()) {
+            int maxId = allUoms.stream()
+                    .mapToInt(u -> {
+                        try {
+                            return Integer.parseInt(u.getId());
+                        } catch (NumberFormatException e) {
+                            return 0;
+                        }
+                    })
+                    .max()
+                    .orElse(0);
+            nextId = maxId + 1;
+        }
+
+        uom.setId(String.valueOf(nextId)); // Sets ID to "1", "2", etc.
         return uomRepository.save(uom);
     }
 
@@ -93,22 +157,8 @@ public class ProductService {
 
     // ================= WAREHOUSE LOGIC =================
     public List<Warehouse> getAllWarehouses() { return warehouseRepository.findAll(); }
-
-    public Warehouse addWarehouse(Warehouse warehouse) {
-        if (warehouseRepository.existsByNameIgnoreCase(warehouse.getName())) {
-            throw new RuntimeException("Error: Warehouse '" + warehouse.getName() + "' already exists.");
-        }
-        return warehouseRepository.save(warehouse);
-    }
-
-    public Warehouse updateWarehouse(String name, Warehouse newDetails) {
-        return warehouseRepository.findById(name).map(w -> {
-            w.setDescription(newDetails.getDescription());
-            return warehouseRepository.save(w);
-        }).orElseThrow(() -> new RuntimeException("Warehouse not found"));
-    }
-
-    public void deleteWarehouse(String name) { warehouseRepository.deleteById(name); }
+    public Warehouse addWarehouse(Warehouse w) { return warehouseRepository.save(w); }
+    public void deleteWarehouse(String id) { warehouseRepository.deleteById(id); }
 
     // ================= STOCK COUNT LOGIC =================
     public List<StockCount> getAllStockCounts() { return stockRepository.findAll(); }

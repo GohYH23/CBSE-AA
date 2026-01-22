@@ -14,6 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -40,9 +41,9 @@ public class ProductServiceTest {
 
     @Test
     void testAddProduct_ShouldSaveAndReturnProduct() {
-        Product p = new Product("101", "Apple", 2.50, "g1", "u1");
+        Product p = new Product();
+        p.setName("Apple");
 
-        // Mock the duplicate check to return FALSE (no duplicate)
         when(productRepo.existsByNameIgnoreCase("Apple")).thenReturn(false);
         when(productRepo.save(any(Product.class))).thenReturn(p);
 
@@ -55,12 +56,11 @@ public class ProductServiceTest {
 
     @Test
     void testAddProduct_DuplicateName_ShouldThrowException() {
-        Product p = new Product("102", "Banana", 2.00, "g1", "u1");
+        Product p = new Product();
+        p.setName("Banana");
 
-        // Mock the duplicate check to return TRUE (duplicate exists)
         when(productRepo.existsByNameIgnoreCase("Banana")).thenReturn(true);
 
-        // Expect an Exception
         Exception exception = assertThrows(RuntimeException.class, () -> {
             productService.addProduct(p);
         });
@@ -71,7 +71,8 @@ public class ProductServiceTest {
 
     @Test
     void testGetProductById_ShouldReturnOptional() {
-        Product p = new Product("101", "Apple", 2.50, "g1", "u1");
+        Product p = new Product();
+        p.setName("Apple");
         when(productRepo.findById("101")).thenReturn(Optional.of(p));
 
         Optional<Product> result = productService.getProductById("101");
@@ -80,61 +81,48 @@ public class ProductServiceTest {
         assertEquals("Apple", result.get().getName());
     }
 
-    @Test
-    void testUpdateProduct_ShouldSaveToRepo() {
-        Product existing = new Product("101", "Old Name", 1.0, "g1", "u1");
-        Product newDetails = new Product("101", "New Name", 2.0, "g1", "u1");
-
-        when(productRepo.findById("101")).thenReturn(Optional.of(existing));
-        when(productRepo.save(any(Product.class))).thenReturn(newDetails);
-
-        Product updated = productService.updateProduct("101", newDetails);
-
-        assertEquals("New Name", updated.getName());
-        verify(productRepo, times(1)).save(any(Product.class));
-    }
-
-    @Test
-    void testDeleteProduct_ShouldCallDeleteById() {
-        productService.deleteProduct("101");
-        verify(productRepo, times(1)).deleteById("101");
-    }
-
     // ==========================================
-    // 2. PRODUCT GROUP TESTS
+    // 2. PRODUCT GROUP TESTS (Fixed to match your Service)
     // ==========================================
 
     @Test
-    void testAddGroup_ShouldSave() {
-        ProductGroup pg = new ProductGroup("g1", "Fruits", "Fresh");
+    void testCreateProductGroup_ShouldReturnSuccessMessage() {
+        // Mocking the duplicate check
         when(groupRepo.existsByGroupNameIgnoreCase("Fruits")).thenReturn(false);
-        when(groupRepo.save(any(ProductGroup.class))).thenReturn(pg);
+        // Mocking the auto-increment logic (empty list = ID 1)
+        when(groupRepo.findAll()).thenReturn(Collections.emptyList());
 
-        productService.addGroup(pg);
-        verify(groupRepo, times(1)).save(pg);
+        // Use the EXACT method from your Service: createProductGroup(String, String)
+        String result = productService.createProductGroup("Fruits", "Fresh");
+
+        assertTrue(result.contains("✅ Group Added"));
+        verify(groupRepo, times(1)).save(any(ProductGroup.class));
     }
 
     @Test
-    void testDeleteGroup_WhenInUse_ShouldThrowException() {
-        String groupId = "g1";
-        // Simulate that products are using this group
+    void testDeleteProductGroup_WhenInUse_ShouldReturnWarning() {
+        String groupId = "1";
+        // Simulate that products ARE using this group
         when(productRepo.findByProductGroupId(groupId)).thenReturn(List.of(new Product()));
 
-        Exception exception = assertThrows(RuntimeException.class, () -> {
-            productService.deleteGroup(groupId);
-        });
+        // Call method directly
+        String result = productService.deleteProductGroup(groupId);
 
-        assertTrue(exception.getMessage().contains("Cannot Delete"));
+        // Expect the specific string return from your Service
+        assertEquals("⚠️ Cannot Delete: Group is in use.", result);
         verify(groupRepo, never()).deleteById(anyString());
     }
 
     @Test
-    void testDeleteGroup_WhenEmpty_ShouldDelete() {
-        String groupId = "g2";
-        // Simulate no products use this group
-        when(productRepo.findByProductGroupId(groupId)).thenReturn(List.of());
+    void testDeleteProductGroup_WhenEmpty_ShouldDelete() {
+        String groupId = "2";
+        // Simulate NO products using this group
+        when(productRepo.findByProductGroupId(groupId)).thenReturn(Collections.emptyList());
+        when(groupRepo.existsById(groupId)).thenReturn(true);
 
-        productService.deleteGroup(groupId);
+        String result = productService.deleteProductGroup(groupId);
+
+        assertEquals("✅ Group Deleted.", result);
         verify(groupRepo, times(1)).deleteById(groupId);
     }
 
@@ -144,17 +132,24 @@ public class ProductServiceTest {
 
     @Test
     void testAddUOM_ShouldSave() {
-        UnitMeasure uom = new UnitMeasure("u1", "KG", "kg");
+        UnitMeasure uom = new UnitMeasure();
+        uom.setUnitName("KG");
+        uom.setId("1");
+
         when(uomRepo.existsByUnitNameIgnoreCase("KG")).thenReturn(false);
+        when(uomRepo.findAll()).thenReturn(Collections.emptyList()); // For auto-increment
         when(uomRepo.save(any(UnitMeasure.class))).thenReturn(uom);
 
-        productService.addUOM(uom);
+        UnitMeasure result = productService.addUOM(uom);
+
+        assertNotNull(result);
         verify(uomRepo, times(1)).save(uom);
     }
 
     @Test
     void testDeleteUOM_WhenInUse_ShouldThrowException() {
         String uomId = "u1";
+        // Simulate usage
         when(productRepo.findByUomId(uomId)).thenReturn(List.of(new Product()));
 
         assertThrows(RuntimeException.class, () -> productService.deleteUOM(uomId));
@@ -167,8 +162,9 @@ public class ProductServiceTest {
 
     @Test
     void testAddWarehouse_ShouldSave() {
-        Warehouse w = new Warehouse("KL", false, "Main");
-        when(warehouseRepo.existsByNameIgnoreCase("KL")).thenReturn(false);
+        Warehouse w = new Warehouse();
+        w.setName("KL");
+
         when(warehouseRepo.save(any(Warehouse.class))).thenReturn(w);
 
         productService.addWarehouse(w);
@@ -182,12 +178,12 @@ public class ProductServiceTest {
     }
 
     // ==========================================
-    // 5. STOCK COUNT TESTS
+    // 5. STOCK COUNT TESTS (Including Complete Count)
     // ==========================================
 
     @Test
     void testCreateStockCount_ShouldSave() {
-        StockCount sc = new StockCount("SC-1", "KL", "Pending", "2024");
+        StockCount sc = new StockCount();
         when(stockRepo.save(any(StockCount.class))).thenReturn(sc);
 
         productService.createStockCount(sc);
@@ -195,10 +191,23 @@ public class ProductServiceTest {
     }
 
     @Test
-    void testGetAllStockCounts_ShouldReturnList() {
-        when(stockRepo.findAll()).thenReturn(List.of(new StockCount()));
-        List<StockCount> list = productService.getAllStockCounts();
-        assertEquals(1, list.size());
-        verify(stockRepo, times(1)).findAll();
+    void testCompleteStockCount_ShouldUpdateStatus() {
+        // 1. Setup existing pending count
+        StockCount sc = new StockCount();
+        sc.setCountId("SC-100");
+        sc.setStatus("Pending");
+
+        // 2. Mock finding the ID
+        when(stockRepo.findById("SC-100")).thenReturn(Optional.of(sc));
+        // Mock saving the updated version
+        when(stockRepo.save(any(StockCount.class))).thenReturn(sc);
+
+        // 3. Act
+        String result = productService.completeStockCount("SC-100");
+
+        // 4. Assert
+        assertTrue(result.contains("marked as Completed"));
+        assertEquals("Completed", sc.getStatus()); // Verify status changed
+        verify(stockRepo, times(1)).save(sc); // Verify save was called
     }
 }

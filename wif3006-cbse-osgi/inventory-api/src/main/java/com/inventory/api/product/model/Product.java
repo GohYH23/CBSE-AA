@@ -35,7 +35,6 @@ public class Product implements Serializable {
         this.price = price;
         this.quantity = quantity;
     }
-
     // 4. Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
@@ -52,7 +51,6 @@ public class Product implements Serializable {
     // --- NEW GETTERS AND SETTERS ---
     public String getProductGroupId() { return productGroupId; }
     public void setProductGroupId(String productGroupId) { this.productGroupId = productGroupId; }
-
     public String getUomId() { return uomId; }
     public void setUomId(String uomId) { this.uomId = uomId; }
 

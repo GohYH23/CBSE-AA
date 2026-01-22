@@ -58,6 +58,36 @@
             <artifactId>bson</artifactId>
             <version>4.10.2</version>
         </dependency>
+        <dependency>
+            <groupId>com.inventory.osgi</groupId>
+            <artifactId>inventory-api</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.inventory.osgi</groupId>
+            <artifactId>main-menu-bundle</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.inventory.osgi</groupId>
+            <artifactId>customer-bundle</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.inventory.osgi</groupId>
+            <artifactId>purchase-order-bundle</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.inventory.osgi</groupId>
+            <artifactId>sales-order-bundle</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.inventory.osgi</groupId>
+            <artifactId>product-bundle</artifactId>
+            <version>1.0.0</version>
+        </dependency>
     </dependencies>
 
     <build>

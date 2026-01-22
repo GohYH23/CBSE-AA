@@ -6,133 +6,122 @@ import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
 import java.io.InputStream;
-import java.io.IOException;
+import java.util.*;
 
 public class Launcher {
+
     public static void main(String[] args) {
         try {
             System.out.println("Starting Pure OSGi Inventory System...");
 
-            try (InputStream input = Launcher.class.getClassLoader().getResourceAsStream("osgi.properties")) {
-                if (input == null) {
-                    System.out.println("Warning: osgi.properties not found!");
-                } else {
+            /* ------------------------------------------------------------------
+             * Load configuration (MongoDB URI)
+             * ------------------------------------------------------------------ */
+            try (InputStream input =
+                         Launcher.class.getClassLoader().getResourceAsStream("osgi.properties")) {
+
+                if (input != null) {
                     Properties prop = new Properties();
                     prop.load(input);
 
-                    // 1. Get the URI from the file
                     String uri = prop.getProperty("mongodb.uri");
-
-                    // 2. Save it to the System (Global Variable)
-                    // Now ANY bundle can read this using System.getProperty()
                     if (uri != null) {
                         System.setProperty("mongodb.uri", uri);
                         System.out.println("Configuration Loaded: MongoDB URI set.");
                     }
+                } else {
+                    System.out.println("Warning: osgi.properties not found!");
                 }
-            } catch (IOException ex) {
-                ex.printStackTrace();
             }
 
-            // 1. Configure Framework
+            /* ------------------------------------------------------------------
+             * Configure & start Felix framework
+             * ------------------------------------------------------------------ */
             Map<String, String> config = new HashMap<>();
-            config.put(Constants.FRAMEWORK_STORAGE_CLEAN, Constants.FRAMEWORK_STORAGE_CLEAN_ONFIRSTINIT);
+            config.put(Constants.FRAMEWORK_STORAGE_CLEAN,
+                    Constants.FRAMEWORK_STORAGE_CLEAN_ONFIRSTINIT);
 
-            // 2. Start Felix
             Felix felix = new Felix(config);
             felix.start();
+
             BundleContext context = felix.getBundleContext();
 
-            // --- PATH SETUP ---
-            // Determine the project root directory
-            // If running from inventory-launcher/target, go up two levels
-            // If running from wif3006-cbse-osgi, use current directory
-            File currentDir = new File(".").getAbsoluteFile();
-            String rootPath;
-
-            // Check if we're in the target directory
-            if (currentDir.getName().equals("target") && currentDir.getParentFile().getName().equals("inventory-launcher")) {
-                // We're in inventory-launcher/target, go up to project root
-                rootPath = currentDir.getParentFile().getParentFile().getAbsolutePath();
-            } else {
-                // We're in project root
-                rootPath = currentDir.getAbsolutePath();
+            /* ------------------------------------------------------------------
+             * Path setup (SIMPLE & CORRECT)
+             * ------------------------------------------------------------------ */
+            String baseDir = new File(".").getAbsolutePath().replace("\\", "/");
+            if (!baseDir.endsWith("/")) {
+                baseDir += "/";
             }
 
-            // Ensure path uses forward slashes (or use File.separator)
-            rootPath = rootPath.replace("\\", "/");
-            if (!rootPath.endsWith("/")) {
-                rootPath += "/";
-            }
+            String bundlesDir = baseDir + "target/bundles/";
 
-            // 3. Define Bundle Lists
-            List<String> infrastructureBundles = new ArrayList<>();
-            List<String> projectBundles = new ArrayList<>();
+            /* ------------------------------------------------------------------
+             * Define bundles
+             * ------------------------------------------------------------------ */
+            List<String> infrastructureBundles = List.of(
+                    bundlesDir + "org.osgi.util.function-1.2.0.jar",
+                    bundlesDir + "org.osgi.util.promise-1.2.0.jar",
+                    bundlesDir + "org.osgi.service.component-1.5.0.jar",
+                    bundlesDir + "org.apache.felix.scr-2.2.6.jar",
+                    bundlesDir + "bson-4.10.2.jar",
+                    bundlesDir + "mongodb-driver-core-4.10.2.jar",
+                    bundlesDir + "mongodb-driver-sync-4.10.2.jar"
+            );
 
-            // A. Infrastructure (The "Manager" components)
-            // These are copied here by the maven-dependency-plugin
-            String libDir = rootPath + "inventory-launcher/target/bundles/";
+            List<String> projectBundles = List.of(
+                    bundlesDir + "inventory-api-1.0.0.jar",
+                    bundlesDir + "main-menu-bundle-1.0.0.jar",
+                    bundlesDir + "customer-bundle-1.0.0.jar",
+                    bundlesDir + "purchase-order-bundle-1.0.0.jar",
+                    bundlesDir + "sales-order-bundle-1.0.0.jar",
+                    bundlesDir + "product-bundle-1.0.0.jar"
+            );
 
-            // ORDER MATTERS: Function -> Promise -> API -> SCR
-            infrastructureBundles.add(libDir + "org.osgi.util.function-1.2.0.jar");
-            infrastructureBundles.add(libDir + "org.osgi.util.promise-1.2.0.jar");
-            infrastructureBundles.add(libDir + "org.osgi.service.component-1.5.0.jar");
-            infrastructureBundles.add(libDir + "org.apache.felix.scr-2.2.6.jar");
-            infrastructureBundles.add(libDir + "bson-4.10.2.jar");
-            infrastructureBundles.add(libDir + "mongodb-driver-core-4.10.2.jar");
-            infrastructureBundles.add(libDir + "mongodb-driver-sync-4.10.2.jar");
-
-            // B. Project Bundles (Your Code)
-            projectBundles.add(rootPath + "inventory-api/target/inventory-api-1.0.0.jar");
-            projectBundles.add(rootPath + "main-bundle/target/main-menu-bundle-1.0.0.jar");
-            projectBundles.add(rootPath + "customer-bundle/target/customer-bundle-1.0.0.jar");
-            projectBundles.add(rootPath + "purchase-order-bundle/target/purchase-order-bundle-1.0.0.jar");
-            projectBundles.add(rootPath + "sales-order-bundle/target/sales-order-bundle-1.0.0.jar");
-            projectBundles.add(rootPath + "product-bundle/target/product-bundle-1.0.0.jar");
-
-            // 4. Install & Start Infrastructure
+            /* ------------------------------------------------------------------
+             * Install & start infrastructure
+             * ------------------------------------------------------------------ */
             System.out.println("--- Loading Infrastructure ---");
             for (String path : infrastructureBundles) {
-                installAndStart(context, rootPath, path);
+                installAndStart(context, path);
             }
 
-            // 5. Install & Start Modules
+            /* ------------------------------------------------------------------
+             * Install & start project modules
+             * ------------------------------------------------------------------ */
             System.out.println("--- Loading Modules ---");
             for (String path : projectBundles) {
-                installAndStart(context, rootPath, path);
+                installAndStart(context, path);
             }
 
-            // Keep running
+            /* ------------------------------------------------------------------
+             * Keep framework running
+             * ------------------------------------------------------------------ */
             felix.waitForStop(0);
-        } catch (Exception ex) {
-            ex.printStackTrace();
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
-    private static void installAndStart(BundleContext context, String rootPath, String bundlePath) {
-        // bundlePath is already an absolute path from rootPath
-        File f = new File(bundlePath);
+    /* --------------------------------------------------------------------------
+     * Helper: Install & start a bundle
+     * -------------------------------------------------------------------------- */
+    private static void installAndStart(BundleContext context, String bundlePath) {
+        File jar = new File(bundlePath);
 
-        if (!f.exists()) {
+        if (!jar.exists()) {
             System.err.println("Bundle file not found: " + bundlePath);
             return;
         }
 
-        String fullPath = "file:" + f.getAbsolutePath();
-
         try {
-            Bundle b = context.installBundle(fullPath);
-            b.start();
-            System.out.println("Installed & Started: " + b.getSymbolicName());
+            Bundle bundle = context.installBundle(jar.toURI().toString());
+            bundle.start();
+            System.out.println("Installed & Started: " + bundle.getSymbolicName());
         } catch (Exception e) {
-            System.err.println("Failed to load: " + bundlePath);
-            System.err.println("Error: " + e.getMessage());
+            System.err.println("Failed to load bundle: " + bundlePath);
             e.printStackTrace();
         }
     }

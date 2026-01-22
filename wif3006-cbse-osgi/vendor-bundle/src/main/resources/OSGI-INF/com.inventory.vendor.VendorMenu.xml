@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.3.0" 
+               name="com.inventory.vendor.VendorMenu"
+               immediate="true">
+    <implementation class="com.inventory.vendor.VendorMenu"/>
+    <service>
+        <provide interface="com.inventory.vendor.VendorMenu"/>
+    </service>
+    <reference name="VendorService"
+               interface="com.inventory.vendor.api.VendorService"
+               bind="setVendorService"
+               cardinality="1..1"
+               policy="static"/>
+    <property name="osgi.command.scope" type="String" value="vendor"/>
+    <property name="osgi.command.function" type="String" value="vendormenu vendorcheck"/>
+</scr:component>

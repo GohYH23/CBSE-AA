@@ -1,32 +1,51 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+<!-- Add to the existing pom.xml in inventory-api -->
 
-    <parent>
-        <groupId>com.inventory.osgi</groupId>
-        <artifactId>inventory-osgi-root</artifactId>
-        <version>1.0.0</version>
-    </parent>
+<!-- In the <dependencies> section, add: -->
+<dependency>
+    <groupId>org.osgi</groupId>
+    <artifactId>org.osgi.core</artifactId>
+    <version>8.0.0</version>
+    <scope>provided</scope>
+</dependency>
 
-    <artifactId>inventory-api</artifactId>
-    <packaging>bundle</packaging>
+<dependency>
+    <groupId>org.osgi</groupId>
+    <artifactId>org.osgi.service.component.annotations</artifactId>
+    <version>1.5.0</version>
+    <scope>provided</scope>
+</dependency>
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>maven-bundle-plugin</artifactId>
-                <version>5.1.8</version>
-                <extensions>true</extensions>
-                <configuration>
-                    <instructions>
-                        <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
-                        <Export-Package>com.inventory.api.*</Export-Package>
-                    </instructions>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
-</project>
+<!-- Update the <build><plugins><plugin> configuration for maven-bundle-plugin -->
+<plugin>
+    <groupId>org.apache.felix</groupId>
+    <artifactId>maven-bundle-plugin</artifactId>
+    <version>5.1.1</version>
+    <extensions>true</extensions>
+    <configuration>
+        <instructions>
+            <Bundle-SymbolicName>com.inventory.api</Bundle-SymbolicName>
+            <Bundle-Version>${project.version}</Bundle-Version>
+            <Export-Package>
+                com.inventory.api;version="1.0.0",
+                com.inventory.api.customer.model;version="1.0.0",
+                com.inventory.api.customer.service;version="1.0.0",
+                com.inventory.api.product.model;version="1.0.0",
+                com.inventory.api.product.service;version="1.0.0",
+                com.inventory.api.salesorder.model;version="1.0.0",
+                com.inventory.api.salesorder.service;version="1.0.0",
+                com.inventory.api.purchaseorder.model;version="1.0.0",
+                com.inventory.api.purchaseorder.service;version="1.0.0",
+                <!-- Add vendor packages -->
+                com.inventory.api.vendor.model;version="1.0.0",
+                com.inventory.api.vendor.service;version="1.0.0"
+            </Export-Package>
+            <Import-Package>
+    org.osgi.framework;version="[1.8,2)",
+    org.osgi.service.component.annotations;version="[1.3,2)",
+    com.inventory.api.vendor.model;version="[1.0,2)",  <!-- Add this -->
+    com.inventory.api.vendor.service;version="[1.0,2)", <!-- Add this -->
+    *
+</Import-Package>
+        </instructions>
+    </configuration>
+</plugin>

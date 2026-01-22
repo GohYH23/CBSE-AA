@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.3.0" 
+               name="com.inventory.vendor.VendorServiceImpl"
+               immediate="true">
+    <implementation class="com.inventory.vendor.VendorServiceImpl"/>
+    <service>
+        <provide interface="com.inventory.vendor.api.VendorService"/>
+    </service>
+    <property name="service.description" type="String" value="Vendor Management Service"/>
+    <property name="service.vendor" type="String" value="Inventory System"/>
+</scr:component>

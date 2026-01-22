@@ -1,5 +1,6 @@
-package com.inventorymanagement.vendor_Rafid.service;
+package com.inventorymanagement.vendor_rafidurrashid.service;
 
+import com.inventorymanagement.vendor_rafidurrashid.service.VendorService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

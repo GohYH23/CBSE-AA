@@ -25,7 +25,6 @@ public class ProductServiceImpl implements ProductService {
     private MongoClient mongoClient;
     private MongoDatabase database;
 
-    // 👇 THESE FIELDS MUST EXIST SO THE TEST CAN "SEE" THEM
     private MongoCollection<Document> productCollection;
     private MongoCollection<Document> productGroupCollection;
     private MongoCollection<Document> unitMeasureCollection;
@@ -45,7 +44,6 @@ public class ProductServiceImpl implements ProductService {
             mongoClient = MongoClients.create(uri);
             database = mongoClient.getDatabase("inventory_db_osgi");
 
-            // 👇 INITIALIZE THE FIELDS HERE (Crucial for testing)
             productCollection = database.getCollection("products");
             productGroupCollection = database.getCollection("product_groups");
             unitMeasureCollection = database.getCollection("unit_measures");
@@ -227,12 +225,9 @@ public class ProductServiceImpl implements ProductService {
         return list;
     }
 
-    // 👇 NEWLY ADDED METHOD TO FIX THE ERROR
     @Override
     public String completeStockCount(String countId) {
         try {
-            // Update the document where "id" matches the countId
-            // Note: We use "id" here because addStockCount() uses "id" as the key
             com.mongodb.client.result.UpdateResult result = stockCountCollection.updateOne(
                     Filters.eq("id", countId),
                     Updates.set("status", "Completed")

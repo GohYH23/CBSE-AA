@@ -55,14 +55,12 @@ public class ProductMenu {
     // --- 1. Products ---
     private void handleProducts(Scanner s) {
         System.out.println("\n--- Products ---");
-        // UPDATED: Added "0. Back"
         System.out.println("1. Add | 2. List | 3. Edit | 4. Delete | 0. Back");
         String c = s.nextLine();
 
-        if (c.equals("0")) {
-            return; // Go Back to Main Menu
-        }
-        else if (c.equals("1")) {
+        if (c.equals("0")) return;
+
+        if (c.equals("1")) {
             String id = generateProductId();
             System.out.println("Generating New ID: " + id);
 
@@ -100,8 +98,7 @@ public class ProductMenu {
             System.out.println("==========================================================");
 
         } else if (c.equals("3")) {
-            System.out.print("ID to Edit (or 0 to cancel): ");
-            String id = s.nextLine();
+            System.out.print("ID to Edit (0 to cancel): "); String id = s.nextLine();
             if (id.equals("0")) return;
 
             Product p = productService.getProductById(id).orElse(null);
@@ -116,10 +113,9 @@ public class ProductMenu {
                 System.out.println("❌ Product not found.");
             }
         } else if (c.equals("4")) {
-            System.out.print("ID to Delete (or 0 to cancel): ");
-            String delId = s.nextLine();
-            if (!delId.equals("0")) {
-                productService.deleteProduct(delId);
+            System.out.print("ID to Delete (0 to cancel): "); String id = s.nextLine();
+            if (!id.equals("0")) {
+                productService.deleteProduct(id);
                 System.out.println("✅ Deleted.");
             }
         }
@@ -131,10 +127,9 @@ public class ProductMenu {
         System.out.println("1. Add | 2. List | 3. Edit | 4. Delete | 0. Back");
         String c = s.nextLine();
 
-        if (c.equals("0")) {
-            return;
-        }
-        else if (c.equals("1")) {
+        if (c.equals("0")) return;
+
+        if (c.equals("1")) {
             String name = prompt(s, "Name: ");
             String desc = prompt(s, "Desc: ");
             System.out.println(productService.createProductGroup(name, desc));
@@ -148,7 +143,7 @@ public class ProductMenu {
             System.out.println("==============================");
 
         } else if (c.equals("3")) {
-            System.out.print("Enter Group ID to Edit (or 0 to cancel): ");
+            System.out.print("Enter Group ID to Edit (0 to cancel): ");
             String editId = s.nextLine();
             if (editId.equals("0")) return;
 
@@ -161,24 +156,23 @@ public class ProductMenu {
             }
 
         } else if (c.equals("4")) {
-            System.out.print("ID to Delete (or 0 to cancel): ");
-            String delId = s.nextLine();
-            if (!delId.equals("0")) {
-                System.out.println(productService.deleteProductGroup(delId));
+            System.out.print("ID to Delete (0 to cancel): ");
+            String id = s.nextLine();
+            if (!id.equals("0")) {
+                System.out.println(productService.deleteProductGroup(id));
             }
         }
     }
 
-    // --- 3. UOM ---
+    // --- 3. UOM (UPDATED: Added Edit) ---
     private void handleUOM(Scanner s) {
         System.out.println("\n--- UOM ---");
-        System.out.println("1. Add | 2. List | 3. Delete | 0. Back");
+        System.out.println("1. Add | 2. List | 3. Edit | 4. Delete | 0. Back");
         String c = s.nextLine();
 
-        if (c.equals("0")) {
-            return;
-        }
-        else if (c.equals("1")) {
+        if (c.equals("0")) return;
+
+        if (c.equals("1")) {
             String name = prompt(s, "Name: ");
             String sym = prompt(s, "Symbol: ");
             productService.addUOM(new UnitMeasure(null, name, sym));
@@ -193,19 +187,39 @@ public class ProductMenu {
             System.out.println("================================");
 
         } else if (c.equals("3")) {
-            System.out.print("ID to Delete (or 0 to cancel): ");
-            String delId = s.nextLine();
-            if (!delId.equals("0")) {
-                productService.deleteUOM(delId);
+            // NEW: Edit UOM Logic
+            System.out.print("ID to Edit (0 to cancel): "); String id = s.nextLine();
+            if (id.equals("0")) return;
+
+            UnitMeasure uom = productService.getAllUOMs().stream()
+                    .filter(u -> u.getId().equals(id))
+                    .findFirst()
+                    .orElse(null);
+
+            if (uom != null) {
+                String n = prompt(s, "New Name ("+uom.getUnitName()+"): ");
+                uom.setUnitName(n);
+                String sym = prompt(s, "New Symbol ("+uom.getSymbol()+"): ");
+                uom.setSymbol(sym);
+                productService.updateUOM(id, uom);
+                System.out.println("✅ Updated.");
+            } else {
+                System.out.println("❌ UOM not found.");
+            }
+
+        } else if (c.equals("4")) {
+            System.out.print("ID to Delete (0 to cancel): "); String id = s.nextLine();
+            if (!id.equals("0")) {
+                productService.deleteUOM(id);
                 System.out.println("✅ Deleted.");
             }
         }
     }
 
-    // --- 4. Warehouses ---
+    // --- 4. Warehouses (UPDATED: Added Edit) ---
     private void handleWarehouses(Scanner s) {
         System.out.println("\n--- Warehouses ---");
-        System.out.println("1. Add | 2. List | 3. Delete | 0. Back");
+        System.out.println("1. Add | 2. List | 3. Edit | 4. Delete | 0. Back");
         String c = s.nextLine();
 
         if (c.equals("0")) return;
@@ -225,10 +239,27 @@ public class ProductMenu {
             System.out.println("==================================");
 
         } else if (c.equals("3")) {
-            System.out.print("Name to Delete (or 0 to cancel): ");
-            String delId = s.nextLine();
-            if (!delId.equals("0")) {
-                productService.deleteWarehouse(delId);
+            // NEW: Edit Warehouse Logic
+            System.out.print("Name to Edit (0 to cancel): "); String name = s.nextLine();
+            if (name.equals("0")) return;
+
+            Warehouse w = productService.getAllWarehouses().stream()
+                    .filter(wh -> wh.getName().equals(name))
+                    .findFirst().orElse(null);
+
+            if (w != null) {
+                String d = prompt(s, "New Description ("+w.getDescription()+"): ");
+                w.setDescription(d);
+                productService.addWarehouse(w); // Save updates
+                System.out.println("✅ Updated.");
+            } else {
+                System.out.println("❌ Warehouse not found.");
+            }
+
+        } else if (c.equals("4")) {
+            System.out.print("Name to Delete (0 to cancel): "); String id = s.nextLine();
+            if (!id.equals("0")) {
+                productService.deleteWarehouse(id);
                 System.out.println("✅ Deleted.");
             }
         }
@@ -263,7 +294,7 @@ public class ProductMenu {
     }
 
     // ==========================================
-    // AUTO-INCREMENT HELPER (Only for Products)
+    // AUTO-INCREMENT HELPER
     // ==========================================
     private String generateProductId() {
         int max = 0;

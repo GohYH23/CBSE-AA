@@ -11,7 +11,7 @@ import java.util.Optional;
 public interface ProductRepository extends MongoRepository<Product, String> {
     // Custom finder methods (Spring generates the logic automatically)
     boolean existsByNameIgnoreCase(String name);
-    List<Product> findByProductGroupId(String groupId);
+     List<Product> findByProductGroupId(String groupId);
     List<Product> findByUomId(String uomId);
     Optional<Product> findByName(String name);
 }

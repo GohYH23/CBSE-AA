@@ -1,14 +1,9 @@
+package com.inventorymanagement.vendor_Rafid.service;
 
-
-import com.inventorymanagement.salesorder_wongxiuhuan.model.*;
-import com.inventorymanagement.salesorder_wongxiuhuan.service.SalesOrderService;
+import com.inventorymanagement.vendor_Rafid.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
@@ -17,771 +12,1269 @@ import java.util.Scanner;
 public class VendorMenu {
 
     @Autowired
-    private SalesOrderService salesOrderService;
+    private VendorService vendorService;
 
     private Scanner scanner = new Scanner(System.in);
-    private DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-    // ==================== MAIN MENU ====================
-    public void displayMainMenu() {
-        boolean exit = false;
-        
-        while (!exit) {
-            System.out.println("\n╔══════════════════════════════════════════╗");
-            System.out.println("║       SALES ORDER MANAGEMENT SYSTEM      ║");
-            System.out.println("╠══════════════════════════════════════════╣");
-            System.out.println("║  1. Manage Sales Orders                  ║");
-            System.out.println("║  2. Manage Delivery Orders               ║");
-            System.out.println("║  3. Manage Sales Returns                 ║");
-            System.out.println("║  4. View Sales Reports                   ║");
-            System.out.println("║  5. Exit to Main Menu                    ║");
-            System.out.println("╚══════════════════════════════════════════╝");
-            System.out.print("\nEnter your choice (1-5): ");
-            
-            String choice = scanner.nextLine().trim();
-            
-            switch (choice) {
-                case "1":
-                    manageSalesOrders();
-                    break;
-                case "2":
-                    manageDeliveryOrders();
-                    break;
-                case "3":
-                    manageSalesReturns();
-                    break;
-                case "4":
-                    viewSalesReports();
-                    break;
-                case "5":
-                    exit = true;
-                    System.out.println("\nReturning to main menu...");
-                    break;
-                default:
-                    System.out.println("\n❌ Invalid choice! Please enter a number between 1-5.");
-            }
-        }
-    }
+    public void start() {
+        while (true) {
+            System.out.println("\n=== VENDOR MANAGEMENT SYSTEM ===");
+            System.out.println("1. Manage Vendors");
+            System.out.println("2. Manage Vendor Groups");
+            System.out.println("3. Manage Vendor Categories");
+            System.out.println("4. Manage Vendor Contacts");
+            System.out.println("5. View Reports");
+            System.out.println("0. Back to Main Menu");
+            System.out.print("Select: ");
 
-    // ==================== SALES ORDERS MANAGEMENT ====================
-    private void manageSalesOrders() {
-        boolean back = false;
-        
-        while (!back) {
-            System.out.println("\n╔══════════════════════════════════════════╗");
-            System.out.println("║         MANAGE SALES ORDERS              ║");
-            System.out.println("╠══════════════════════════════════════════╣");
-            System.out.println("║  1. View All Sales Orders                ║");
-            System.out.println("║  2. Create New Sales Order               ║");
-            System.out.println("║  3. View Sales Order Details             ║");
-            System.out.println("║  4. Update Sales Order                   ║");
-            System.out.println("║  5. Delete Sales Order                   ║");
-            System.out.println("║  6. Manage Order Items                   ║");
-            System.out.println("║  7. Back to Main Menu                    ║");
-            System.out.println("╚══════════════════════════════════════════╝");
-            System.out.print("\nEnter your choice (1-7): ");
-            
-            String choice = scanner.nextLine().trim();
-            
-            switch (choice) {
-                case "1":
-                    viewAllSalesOrders();
-                    break;
-                case "2":
-                    createSalesOrder();
-                    break;
-                case "3":
-                    viewSalesOrderDetails();
-                    break;
-                case "4":
-                    updateSalesOrder();
-                    break;
-                case "5":
-                    deleteSalesOrder();
-                    break;
-                case "6":
-                    manageOrderItems();
-                    break;
-                case "7":
-                    back = true;
-                    break;
-                default:
-                    System.out.println("\n❌ Invalid choice! Please enter a number between 1-7.");
-            }
-        }
-    }
-
-    private void viewAllSalesOrders() {
-        List<SalesOrder> orders = salesOrderService.getAllSalesOrders();
-        
-        if (orders.isEmpty()) {
-            System.out.println("\n📭 No sales orders found.");
-            return;
-        }
-        
-        System.out.println("\n══════════════════════════════════════════════════════════════════════════════════════════════════════════");
-        System.out.println("                                         SALES ORDERS LIST");
-        System.out.println("══════════════════════════════════════════════════════════════════════════════════════════════════════════");
-        System.out.printf("%-4s %-18s %-15s %-25s %-12s %-15s %-10s%n", 
-            "No.", "Order Number", "Date", "Customer", "Status", "Total Amount", "Items");
-        System.out.println("──────────────────────────────────────────────────────────────────────────────────────────────────────────");
-        
-        int counter = 1;
-        for (SalesOrder order : orders) {
-            String customerName = salesOrderService.getCustomerNameById(order.getCustomerId());
-            if (customerName.length() > 22) {
-                customerName = customerName.substring(0, 19) + "...";
-            }
-            
-            List<SalesOrderItem> items = salesOrderService.getItemsByOrderId(order.getId());
-            BigDecimal total = calculateOrderTotal(order, items);
-            
-            System.out.printf("%-4d %-18s %-15s %-25s %-12s %-15.2f %-10d%n",
-                counter++,
-                order.getOrderNumber(),
-                order.getOrderDate().format(dateFormatter),
-                customerName,
-                order.getOrderStatus(),
-                total,
-                items.size());
-        }
-        System.out.println("══════════════════════════════════════════════════════════════════════════════════════════════════════════");
-    }
-
-    private void createSalesOrder() {
-        System.out.println("\n══════════════════════════════════════════════════════════════════════════════════════════════════════════");
-        System.out.println("                                         CREATE NEW SALES ORDER");
-        System.out.println("══════════════════════════════════════════════════════════════════════════════════════════════════════════");
-        
-        // Step 1: Customer Selection
-        System.out.print("\nEnter Customer Name: ");
-        String customerName = scanner.nextLine().trim();
-        String customerId = salesOrderService.getCustomerIdByName(customerName);
-        
-        if (customerId == null) {
-            System.out.println("\n❌ Customer not found!");
-            System.out.print("Would you like to: \n1. Try another name \n2. Cancel \nChoice: ");
-            String option = scanner.nextLine().trim();
-            if (option.equals("1")) {
-                createSalesOrder();
-            }
-            return;
-        }
-        
-        // Step 2: Order Date
-        LocalDate orderDate = getDateInput("Order Date (yyyy-MM-dd)", LocalDate.now());
-        
-        // Step 3: Tax Selection
-        String taxId = selectTax();
-        
-        // Step 4: Order Details
-        System.out.print("Order Status (PENDING/CONFIRMED/PROCESSING/COMPLETED/CANCELLED) [PENDING]: ");
-        String status = scanner.nextLine().trim();
-        if (status.isEmpty()) status = "PENDING";
-        
-        System.out.print("Description (optional): ");
-        String description = scanner.nextLine().trim();
-        
-        // Step 5: Create Order
-        SalesOrder order = new SalesOrder();
-        order.setOrderDate(orderDate);
-        order.setCustomerId(customerId);
-        order.setTaxId(taxId);
-        order.setOrderStatus(status.toUpperCase());
-        order.setDescription(description);
-        
-        try {
-            SalesOrder createdOrder = salesOrderService.createSalesOrder(order);
-            System.out.println("\n✅ Sales Order created successfully!");
-            System.out.println("   Order Number: " + createdOrder.getOrderNumber());
-            
-            // Ask to add items
-            System.out.print("\nWould you like to add items to this order? (yes/no): ");
-            String addItems = scanner.nextLine().trim();
-            if (addItems.equalsIgnoreCase("yes")) {
-                addItemsToOrder(createdOrder.getId());
-            }
-        } catch (Exception e) {
-            System.out.println("\n❌ Error creating sales order: " + e.getMessage());
-        }
-    }
-
-    private void viewSalesOrderDetails() {
-        System.out.print("\nEnter Sales Order Number: ");
-        String orderNumber = scanner.nextLine().trim();
-        
-        Optional<SalesOrder> orderOpt = salesOrderService.getSalesOrderByNumber(orderNumber);
-        if (orderOpt.isEmpty()) {
-            System.out.println("\n❌ Sales Order not found!");
-            return;
-        }
-        
-        SalesOrder order = orderOpt.get();
-        List<SalesOrderItem> items = salesOrderService.getItemsByOrderId(order.getId());
-        
-        System.out.println("\n══════════════════════════════════════════════════════════════════════════════════════════════════════════");
-        System.out.println("                                      SALES ORDER DETAILS");
-        System.out.println("══════════════════════════════════════════════════════════════════════════════════════════════════════════");
-        System.out.println("   Order Number   : " + order.getOrderNumber());
-        System.out.println("   Order Date     : " + order.getOrderDate().format(dateFormatter));
-        System.out.println("   Customer       : " + salesOrderService.getCustomerNameById(order.getCustomerId()));
-        System.out.println("   Status         : " + order.getOrderStatus());
-        System.out.println("   Description    : " + (order.getDescription() != null ? order.getDescription() : "N/A"));
-        
-        if (order.getTaxId() != null) {
-            BigDecimal taxRate = salesOrderService.getTaxRateById(order.getTaxId());
-            System.out.println("   Tax Rate       : " + taxRate + "%");
-        }
-        
-        System.out.println("\n──────────────────────────────────────────────────────────────────────────────────────────────────────────");
-        System.out.println("                                          ORDER ITEMS");
-        System.out.println("──────────────────────────────────────────────────────────────────────────────────────────────────────────");
-        
-        if (items.isEmpty()) {
-            System.out.println("   No items in this order.");
-        } else {
-            System.out.printf("%-4s %-25s %-15s %-10s %-12s %-15s%n", 
-                "No.", "Product", "Product No.", "Quantity", "Unit Price", "Total");
-            System.out.println("──────────────────────────────────────────────────────────────────────────────────────────────────────────");
-            
-            int counter = 1;
-            BigDecimal subtotal = BigDecimal.ZERO;
-            
-            for (SalesOrderItem item : items) {
-                String productName = salesOrderService.getProductNameById(item.getProductId());
-                BigDecimal itemTotal = item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
-                subtotal = subtotal.add(itemTotal);
-                
-                System.out.printf("%-4d %-25s %-15s %-10d %-12.2f %-15.2f%n",
-                    counter++,
-                    productName,
-                    item.getProductNumber() != null ? item.getProductNumber() : "N/A",
-                    item.getQuantity(),
-                    item.getUnitPrice(),
-                    itemTotal);
-            }
-            
-            System.out.println("──────────────────────────────────────────────────────────────────────────────────────────────────────────");
-            System.out.printf("%-66s %-15.2f%n", "Subtotal:", subtotal);
-            
-            if (order.getTaxId() != null) {
-                BigDecimal taxRate = salesOrderService.getTaxRateById(order.getTaxId());
-                BigDecimal taxAmount = subtotal.multiply(taxRate).divide(BigDecimal.valueOf(100));
-                System.out.printf("%-66s %-15.2f%n", "Tax (" + taxRate + "%):", taxAmount);
-                System.out.printf("%-66s %-15.2f%n", "Grand Total:", subtotal.add(taxAmount));
-            } else {
-                System.out.printf("%-66s %-15.2f%n", "Grand Total:", subtotal);
-            }
-        }
-        System.out.println("══════════════════════════════════════════════════════════════════════════════════════════════════════════");
-    }
-
-    private void updateSalesOrder() {
-        System.out.print("\nEnter Sales Order Number to update: ");
-        String orderNumber = scanner.nextLine().trim();
-        
-        Optional<SalesOrder> orderOpt = salesOrderService.getSalesOrderByNumber(orderNumber);
-        if (orderOpt.isEmpty()) {
-            System.out.println("\n❌ Sales Order not found!");
-            return;
-        }
-        
-        SalesOrder order = orderOpt.get();
-        System.out.println("\n══════════════════════════════════════════════════════════════════════════════════════════════════════════");
-        System.out.println("                                         UPDATE SALES ORDER");
-        System.out.println("══════════════════════════════════════════════════════════════════════════════════════════════════════════");
-        System.out.println("   Current Order: " + order.getOrderNumber());
-        System.out.println("   Customer: " + salesOrderService.getCustomerNameById(order.getCustomerId()));
-        System.out.println("   Status: " + order.getOrderStatus());
-        System.out.println("\n   Enter new values (press Enter to keep current value):");
-        
-        // Update Customer
-        String currentCustomer = salesOrderService.getCustomerNameById(order.getCustomerId());
-        System.out.print("\n   Customer Name [" + currentCustomer + "]: ");
-        String newCustomer = scanner.nextLine().trim();
-        if (!newCustomer.isEmpty()) {
-            String newCustomerId = salesOrderService.getCustomerIdByName(newCustomer);
-            if (newCustomerId != null) {
-                order.setCustomerId(newCustomerId);
-            } else {
-                System.out.println("   ⚠️  Customer not found. Keeping current customer.");
-            }
-        }
-        
-        // Update Order Date
-        System.out.print("   Order Date [" + order.getOrderDate().format(dateFormatter) + "]: ");
-        String dateInput = scanner.nextLine().trim();
-        if (!dateInput.isEmpty()) {
+            String choice = scanner.nextLine();
             try {
-                order.setOrderDate(LocalDate.parse(dateInput, dateFormatter));
-            } catch (DateTimeParseException e) {
-                System.out.println("   ⚠️  Invalid date format. Keeping current date.");
-            }
-        }
-        
-        // Update Tax
-        System.out.print("   Update tax? (yes/no): ");
-        if (scanner.nextLine().trim().equalsIgnoreCase("yes")) {
-            String newTaxId = selectTax();
-            order.setTaxId(newTaxId);
-        }
-        
-        // Update Status
-        System.out.print("   Status [" + order.getOrderStatus() + "]: ");
-        String status = scanner.nextLine().trim();
-        if (!status.isEmpty()) {
-            order.setOrderStatus(status.toUpperCase());
-        }
-        
-        // Update Description
-        String currentDesc = order.getDescription() != null ? order.getDescription() : "";
-        System.out.print("   Description [" + currentDesc + "]: ");
-        String description = scanner.nextLine().trim();
-        if (!description.isEmpty()) {
-            order.setDescription(description);
-        }
-        
-        try {
-            salesOrderService.updateSalesOrder(order);
-            System.out.println("\n✅ Sales Order updated successfully!");
-        } catch (Exception e) {
-            System.out.println("\n❌ Error updating sales order: " + e.getMessage());
-        }
-    }
-
-    private void deleteSalesOrder() {
-        System.out.print("\nEnter Sales Order Number to delete: ");
-        String orderNumber = scanner.nextLine().trim();
-        
-        Optional<SalesOrder> orderOpt = salesOrderService.getSalesOrderByNumber(orderNumber);
-        if (orderOpt.isEmpty()) {
-            System.out.println("\n❌ Sales Order not found!");
-            return;
-        }
-        
-        SalesOrder order = orderOpt.get();
-        
-        System.out.println("\n⚠️  WARNING: This action cannot be undone!");
-        System.out.println("   Order to delete: " + order.getOrderNumber());
-        System.out.println("   Customer: " + salesOrderService.getCustomerNameById(order.getCustomerId()));
-        System.out.println("   Items: " + salesOrderService.getItemsByOrderId(order.getId()).size());
-        
-        System.out.print("\nAre you sure you want to delete this order? (yes/no): ");
-        String confirmation = scanner.nextLine().trim();
-        
-        if (confirmation.equalsIgnoreCase("yes")) {
-            try {
-                salesOrderService.deleteSalesOrder(order.getId());
-                System.out.println("\n✅ Sales Order deleted successfully!");
+                switch (choice) {
+                    case "1": manageVendors(); break;
+                    case "2": manageVendorGroups(); break;
+                    case "3": manageVendorCategories(); break;
+                    case "4": manageVendorContacts(); break;
+                    case "5": viewReports(); break;
+                    case "0": return;
+                    default: System.out.println("❌ Invalid option.");
+                }
             } catch (Exception e) {
-                System.out.println("\n❌ Error deleting sales order: " + e.getMessage());
+                System.out.println("⚠️ Error: " + e.getMessage());
             }
-        } else {
-            System.out.println("\n❌ Deletion cancelled.");
         }
     }
 
-    // ==================== ORDER ITEMS MANAGEMENT ====================
-    private void manageOrderItems() {
-        System.out.print("\nEnter Sales Order Number: ");
-        String orderNumber = scanner.nextLine().trim();
-        
-        Optional<SalesOrder> orderOpt = salesOrderService.getSalesOrderByNumber(orderNumber);
-        if (orderOpt.isEmpty()) {
-            System.out.println("\n❌ Sales Order not found!");
-            return;
-        }
-        
-        String orderId = orderOpt.get().getId();
-        boolean back = false;
-        
-        while (!back) {
-            System.out.println("\n╔══════════════════════════════════════════╗");
-            System.out.println("║      MANAGE ORDER ITEMS - " + orderNumber + "     ║");
-            System.out.println("╠══════════════════════════════════════════╣");
-            System.out.println("║  1. View Items                           ║");
-            System.out.println("║  2. Add Item                             ║");
-            System.out.println("║  3. Update Item                          ║");
-            System.out.println("║  4. Remove Item                          ║");
-            System.out.println("║  5. Back                                 ║");
-            System.out.println("╚══════════════════════════════════════════╝");
-            System.out.print("\nEnter your choice (1-5): ");
-            
-            String choice = scanner.nextLine().trim();
+    // ==================== 1. MANAGE VENDORS ====================
+    private void manageVendors() {
+        while (true) {
+            System.out.println("\n=== MANAGE VENDORS ===");
+            System.out.println("1. Add New Vendor");
+            System.out.println("2. View All Vendors");
+            System.out.println("3. Search Vendor");
+            System.out.println("4. View Vendor Details");
+            System.out.println("5. Update Vendor");
+            System.out.println("6. Change Vendor Status");
+            System.out.println("7. Delete Vendor");
+            System.out.println("8. View Active Vendors");
+            System.out.println("0. Back");
+            System.out.print("Select: ");
+
+            String choice = scanner.nextLine();
             
             switch (choice) {
-                case "1":
-                    viewOrderItems(orderId);
-                    break;
-                case "2":
-                    addItemToOrder(orderId);
-                    break;
-                case "3":
-                    updateOrderItem(orderId);
-                    break;
-                case "4":
-                    removeOrderItem(orderId);
-                    break;
-                case "5":
-                    back = true;
-                    break;
-                default:
-                    System.out.println("\n❌ Invalid choice! Please enter a number between 1-5.");
+                case "1": addVendor(); break;
+                case "2": viewAllVendors(); break;
+                case "3": searchVendor(); break;
+                case "4": viewVendorDetails(); break;
+                case "5": updateVendor(); break;
+                case "6": changeVendorStatus(); break;
+                case "7": deleteVendor(); break;
+                case "8": viewActiveVendors(); break;
+                case "0": return;
+                default: System.out.println("❌ Invalid option.");
             }
         }
     }
 
-    private void viewOrderItems(String orderId) {
-        List<SalesOrderItem> items = salesOrderService.getItemsByOrderId(orderId);
+    private void addVendor() {
+        System.out.println("\n=== ADD NEW VENDOR ===");
         
-        if (items.isEmpty()) {
-            System.out.println("\n📭 No items found in this order.");
-            return;
+        System.out.print("Vendor Name: ");
+        String name = scanner.nextLine().trim();
+        
+        System.out.print("Email: ");
+        String email = scanner.nextLine().trim();
+        
+        System.out.print("Phone: ");
+        String phone = scanner.nextLine().trim();
+        
+        System.out.print("Address: ");
+        String address = scanner.nextLine().trim();
+        
+        Vendor vendor = new Vendor();
+        vendor.setName(name);
+        vendor.setEmail(email);
+        vendor.setPhone(phone);
+        vendor.setAddress(address);
+        
+        System.out.print("Tax Number: ");
+        String taxNumber = scanner.nextLine().trim();
+        if (!taxNumber.isEmpty()) {
+            vendor.setTaxNumber(taxNumber);
         }
         
-        System.out.println("\n══════════════════════════════════════════════════════════════════════════════════════════════════════════");
-        System.out.println("                                          ORDER ITEMS");
-        System.out.println("══════════════════════════════════════════════════════════════════════════════════════════════════════════");
-        System.out.printf("%-4s %-25s %-15s %-10s %-12s %-15s%n", 
-            "No.", "Product", "Product No.", "Quantity", "Unit Price", "Total");
-        System.out.println("──────────────────────────────────────────────────────────────────────────────────────────────────────────");
-        
-        int counter = 1;
-        BigDecimal total = BigDecimal.ZERO;
-        
-        for (SalesOrderItem item : items) {
-            String productName = salesOrderService.getProductNameById(item.getProductId());
-            BigDecimal itemTotal = item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
-            total = total.add(itemTotal);
-            
-            System.out.printf("%-4d %-25s %-15s %-10d %-12.2f %-15.2f%n",
-                counter++,
-                productName,
-                item.getProductNumber() != null ? item.getProductNumber() : "N/A",
-                item.getQuantity(),
-                item.getUnitPrice(),
-                itemTotal);
+        System.out.print("Payment Terms (e.g., Net 30): ");
+        String paymentTerms = scanner.nextLine().trim();
+        if (!paymentTerms.isEmpty()) {
+            vendor.setPaymentTerms(paymentTerms);
         }
         
-        System.out.println("──────────────────────────────────────────────────────────────────────────────────────────────────────────");
-        System.out.printf("%-66s %-15.2f%n", "Total:", total);
-        System.out.println("══════════════════════════════════════════════════════════════════════════════════════════════════════════");
-    }
-
-    private void addItemToOrder(String orderId) {
-        System.out.println("\n══════════════════════════════════════════════════════════════════════════════════════════════════════════");
-        System.out.println("                                          ADD ITEM");
-        System.out.println("══════════════════════════════════════════════════════════════════════════════════════════════════════════");
-        
-        System.out.print("\nEnter Product Name: ");
-        String productName = scanner.nextLine().trim();
-        String productId = salesOrderService.getProductIdByName(productName);
-        
-        if (productId == null) {
-            System.out.println("\n❌ Product not found!");
-            return;
-        }
-        
-        BigDecimal productPrice = salesOrderService.getProductPriceById(productId);
-        System.out.println("   Product Price: $" + productPrice);
-        
-        System.out.print("   Use this price? (yes/no) [yes]: ");
-        String usePrice = scanner.nextLine().trim();
-        
-        BigDecimal unitPrice = productPrice;
-        if (usePrice.equalsIgnoreCase("no")) {
-            System.out.print("   Enter custom unit price: ");
-            try {
-                unitPrice = new BigDecimal(scanner.nextLine().trim());
-            } catch (NumberFormatException e) {
-                System.out.println("   ⚠️  Invalid price. Using product price: $" + productPrice);
-                unitPrice = productPrice;
-            }
-        }
-        
-        System.out.print("   Enter Quantity: ");
-        int quantity;
         try {
-            quantity = Integer.parseInt(scanner.nextLine().trim());
-            if (quantity <= 0) {
-                System.out.println("   ⚠️  Quantity must be positive. Setting to 1.");
-                quantity = 1;
+            System.out.print("Credit Limit: ");
+            String creditLimitStr = scanner.nextLine().trim();
+            if (!creditLimitStr.isEmpty()) {
+                vendor.setCreditLimit(Double.parseDouble(creditLimitStr));
             }
         } catch (NumberFormatException e) {
-            System.out.println("   ⚠️  Invalid quantity. Setting to 1.");
-            quantity = 1;
+            System.out.println("⚠️ Invalid credit limit. Setting to 0.");
+            vendor.setCreditLimit(0.0);
         }
         
-        System.out.print("   Product Number (optional): ");
-        String productNumber = scanner.nextLine().trim();
+        // Select Vendor Group
+        List<VendorGroup> groups = vendorService.getAllVendorGroups();
+        if (!groups.isEmpty()) {
+            System.out.println("\nAvailable Vendor Groups:");
+            System.out.printf("%-4s %-15s %-30s%n", "No.", "Code", "Group Name");
+            System.out.println("----------------------------------------------");
+            for (int i = 0; i < groups.size(); i++) {
+                System.out.printf("%-4d %-15s %-30s%n", 
+                    i + 1, 
+                    groups.get(i).getCode(),
+                    truncate(groups.get(i).getName(), 30));
+            }
+            System.out.print("Select Group (enter number, or 0 for none): ");
+            try {
+                int groupChoice = Integer.parseInt(scanner.nextLine().trim());
+                if (groupChoice > 0 && groupChoice <= groups.size()) {
+                    vendor.setVendorGroupId(groups.get(groupChoice - 1).getId());
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("⚠️ Invalid selection.");
+            }
+        }
         
-        SalesOrderItem item = new SalesOrderItem();
-        item.setSalesOrderId(orderId);
-        item.setProductId(productId);
-        item.setUnitPrice(unitPrice);
-        item.setQuantity(quantity);
-        item.setProductNumber(productNumber.isEmpty() ? null : productNumber);
+        // Select Vendor Category
+        List<VendorCategory> categories = vendorService.getAllVendorCategories();
+        if (!categories.isEmpty()) {
+            System.out.println("\nAvailable Vendor Categories:");
+            System.out.printf("%-4s %-15s %-30s%n", "No.", "Code", "Category Name");
+            System.out.println("-------------------------------------------------");
+            for (int i = 0; i < categories.size(); i++) {
+                System.out.printf("%-4d %-15s %-30s%n", 
+                    i + 1, 
+                    categories.get(i).getCode(),
+                    truncate(categories.get(i).getName(), 30));
+            }
+            System.out.print("Select Category (enter number, or 0 for none): ");
+            try {
+                int categoryChoice = Integer.parseInt(scanner.nextLine().trim());
+                if (categoryChoice > 0 && categoryChoice <= categories.size()) {
+                    vendor.setVendorCategoryId(categories.get(categoryChoice - 1).getId());
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("⚠️ Invalid selection.");
+            }
+        }
         
         try {
-            salesOrderService.addSalesOrderItem(item);
-            System.out.println("\n✅ Item added successfully!");
+            Vendor createdVendor = vendorService.createVendor(vendor);
+            System.out.println("\n✅ Vendor added successfully!");
+            System.out.println("Vendor Code: " + createdVendor.getVendorCode());
+            System.out.println("Vendor ID: " + createdVendor.getId());
         } catch (Exception e) {
-            System.out.println("\n❌ Error adding item: " + e.getMessage());
+            System.out.println("❌ Error adding vendor: " + e.getMessage());
         }
     }
 
-    private void addItemsToOrder(String orderId) {
-        boolean addMore = true;
+    private void viewAllVendors() {
+        List<Vendor> vendors = vendorService.getAllVendors();
         
-        while (addMore) {
-            addItemToOrder(orderId);
+        if (vendors.isEmpty()) {
+            System.out.println("\n📭 No vendors found.");
+            return;
+        }
+
+        System.out.println("\n=========================== VENDOR LIST ===========================");
+        System.out.printf("%-4s %-15s %-25s %-20s %-12s %-10s%n", 
+            "No.", "Vendor Code", "Name", "Email", "Phone", "Status");
+        System.out.println("-------------------------------------------------------------------");
+
+        int counter = 1;
+        int activeCount = 0;
+        
+        for (Vendor vendor : vendors) {
+            String status = vendor.getStatus();
+            if (status.equals("ACTIVE")) activeCount++;
             
-            System.out.print("\nAdd another item? (yes/no): ");
-            String choice = scanner.nextLine().trim();
-            addMore = choice.equalsIgnoreCase("yes");
+            String statusIcon = status.equals("ACTIVE") ? "✅" : 
+                              status.equals("INACTIVE") ? "⏸️" : "🚫";
+            
+            System.out.printf("%-4d %-15s %-25s %-20s %-12s %-10s %s%n",
+                counter++,
+                vendor.getVendorCode(),
+                truncate(vendor.getName(), 25),
+                truncate(vendor.getEmail(), 20),
+                truncate(vendor.getPhone(), 12),
+                status,
+                statusIcon);
+        }
+        
+        System.out.println("===================================================================");
+        System.out.println("Total Vendors: " + vendors.size() + " | Active: " + activeCount);
+    }
+
+    private void viewActiveVendors() {
+        List<Vendor> vendors = vendorService.getActiveVendors();
+        
+        if (vendors.isEmpty()) {
+            System.out.println("\n📭 No active vendors found.");
+            return;
+        }
+
+        System.out.println("\n=========================== ACTIVE VENDORS ===========================");
+        System.out.printf("%-4s %-15s %-25s %-20s %-12s %-15s%n", 
+            "No.", "Vendor Code", "Name", "Email", "Phone", "Credit Limit");
+        System.out.println("----------------------------------------------------------------------");
+
+        int counter = 1;
+        double totalCreditLimit = 0;
+        
+        for (Vendor vendor : vendors) {
+            double creditLimit = vendor.getCreditLimit() != null ? vendor.getCreditLimit() : 0;
+            totalCreditLimit += creditLimit;
+            
+            System.out.printf("%-4d %-15s %-25s %-20s %-12s $%-14.2f%n",
+                counter++,
+                vendor.getVendorCode(),
+                truncate(vendor.getName(), 25),
+                truncate(vendor.getEmail(), 20),
+                truncate(vendor.getPhone(), 12),
+                creditLimit);
+        }
+        
+        System.out.println("======================================================================");
+        System.out.printf("Total Active Vendors: %d | Total Credit Limit: $%.2f%n", 
+            vendors.size(), totalCreditLimit);
+    }
+
+    private void searchVendor() {
+        System.out.print("\nEnter vendor name to search: ");
+        String searchName = scanner.nextLine().trim();
+        
+        List<Vendor> vendors = vendorService.searchVendorsByName(searchName);
+        
+        if (vendors.isEmpty()) {
+            System.out.println("\n📭 No vendors found matching: " + searchName);
+            return;
+        }
+
+        System.out.println("\n=========================== SEARCH RESULTS ===========================");
+        System.out.printf("%-4s %-15s %-25s %-20s %-12s %-10s%n", 
+            "No.", "Vendor Code", "Name", "Email", "Phone", "Status");
+        System.out.println("-------------------------------------------------------------------");
+
+        int counter = 1;
+        
+        for (Vendor vendor : vendors) {
+            System.out.printf("%-4d %-15s %-25s %-20s %-12s %-10s%n",
+                counter++,
+                vendor.getVendorCode(),
+                truncate(vendor.getName(), 25),
+                truncate(vendor.getEmail(), 20),
+                truncate(vendor.getPhone(), 12),
+                vendor.getStatus());
+        }
+        
+        System.out.println("===================================================================");
+        System.out.println("Found " + vendors.size() + " vendor(s)");
+    }
+
+    private void viewVendorDetails() {
+        System.out.print("\nEnter Vendor Code: ");
+        String vendorCode = scanner.nextLine().trim();
+        
+        Optional<Vendor> vendorOpt = vendorService.getVendorByCode(vendorCode);
+        if (vendorOpt.isEmpty()) {
+            System.out.println("❌ Vendor not found!");
+            return;
+        }
+        
+        Vendor vendor = vendorOpt.get();
+        
+        System.out.println("\n=========================== VENDOR DETAILS ===========================");
+        System.out.println("Vendor Code    : " + vendor.getVendorCode());
+        System.out.println("Name           : " + vendor.getName());
+        System.out.println("Email          : " + vendor.getEmail());
+        System.out.println("Phone          : " + vendor.getPhone());
+        System.out.println("Address        : " + vendor.getAddress());
+        System.out.println("Status         : " + vendor.getStatus());
+        System.out.println("Tax Number     : " + (vendor.getTaxNumber() != null ? vendor.getTaxNumber() : "N/A"));
+        System.out.println("Payment Terms  : " + (vendor.getPaymentTerms() != null ? vendor.getPaymentTerms() : "N/A"));
+        System.out.println("Credit Limit   : $" + (vendor.getCreditLimit() != null ? vendor.getCreditLimit() : "0.00"));
+        System.out.println("Created        : " + vendor.getCreatedAt());
+        System.out.println("Last Updated   : " + vendor.getUpdatedAt());
+        
+        // Show vendor group
+        if (vendor.getVendorGroupId() != null) {
+            Optional<VendorGroup> groupOpt = vendorService.getVendorGroupById(vendor.getVendorGroupId());
+            if (groupOpt.isPresent()) {
+                System.out.println("Vendor Group   : " + groupOpt.get().getName() + " (" + groupOpt.get().getCode() + ")");
+            }
+        }
+        
+        // Show vendor category
+        if (vendor.getVendorCategoryId() != null) {
+            Optional<VendorCategory> categoryOpt = vendorService.getVendorCategoryById(vendor.getVendorCategoryId());
+            if (categoryOpt.isPresent()) {
+                System.out.println("Category       : " + categoryOpt.get().getName() + " (" + categoryOpt.get().getCode() + ")");
+            }
+        }
+        
+        // Show contacts
+        List<VendorContact> contacts = vendorService.getVendorContacts(vendor.getId());
+        if (!contacts.isEmpty()) {
+            System.out.println("\n------------------------ CONTACTS ------------------------");
+            System.out.printf("%-25s %-20s %-15s %-10s%n", "Name", "Position", "Phone", "Primary");
+            System.out.println("----------------------------------------------------------");
+            for (VendorContact contact : contacts) {
+                String primary = contact.getIsPrimary() ? "✓" : "";
+                System.out.printf("%-25s %-20s %-15s %-10s%n",
+                    truncate(contact.getName(), 25),
+                    truncate(contact.getPosition(), 20),
+                    truncate(contact.getPhone(), 15),
+                    primary);
+            }
+        }
+        
+        System.out.println("====================================================================");
+    }
+
+    private void updateVendor() {
+        System.out.print("\nEnter Vendor Code to update: ");
+        String vendorCode = scanner.nextLine().trim();
+        
+        Optional<Vendor> vendorOpt = vendorService.getVendorByCode(vendorCode);
+        if (vendorOpt.isEmpty()) {
+            System.out.println("❌ Vendor not found!");
+            return;
+        }
+        
+        Vendor vendor = vendorOpt.get();
+        
+        System.out.println("\n=== UPDATE VENDOR: " + vendor.getName() + " ===");
+        System.out.println("Current Information:");
+        System.out.println("Name: " + vendor.getName());
+        System.out.println("Email: " + vendor.getEmail());
+        System.out.println("Phone: " + vendor.getPhone());
+        System.out.println("Address: " + vendor.getAddress());
+        System.out.println("Credit Limit: $" + vendor.getCreditLimit());
+        
+        System.out.println("\nEnter new values (press Enter to keep current):");
+        
+        System.out.print("Name [" + vendor.getName() + "]: ");
+        String name = scanner.nextLine().trim();
+        
+        System.out.print("Email [" + vendor.getEmail() + "]: ");
+        String email = scanner.nextLine().trim();
+        
+        System.out.print("Phone [" + vendor.getPhone() + "]: ");
+        String phone = scanner.nextLine().trim();
+        
+        System.out.print("Address [" + vendor.getAddress() + "]: ");
+        String address = scanner.nextLine().trim();
+        
+        System.out.print("Tax Number [" + (vendor.getTaxNumber() != null ? vendor.getTaxNumber() : "") + "]: ");
+        String taxNumber = scanner.nextLine().trim();
+        
+        System.out.print("Payment Terms [" + (vendor.getPaymentTerms() != null ? vendor.getPaymentTerms() : "") + "]: ");
+        String paymentTerms = scanner.nextLine().trim();
+        
+        System.out.print("Credit Limit [" + vendor.getCreditLimit() + "]: ");
+        String creditLimitStr = scanner.nextLine().trim();
+        
+        Vendor updatedVendor = new Vendor();
+        if (!name.isEmpty()) updatedVendor.setName(name);
+        if (!email.isEmpty()) updatedVendor.setEmail(email);
+        if (!phone.isEmpty()) updatedVendor.setPhone(phone);
+        if (!address.isEmpty()) updatedVendor.setAddress(address);
+        if (!taxNumber.isEmpty()) updatedVendor.setTaxNumber(taxNumber);
+        if (!paymentTerms.isEmpty()) updatedVendor.setPaymentTerms(paymentTerms);
+        if (!creditLimitStr.isEmpty()) {
+            try {
+                updatedVendor.setCreditLimit(Double.parseDouble(creditLimitStr));
+            } catch (NumberFormatException e) {
+                System.out.println("⚠️ Invalid credit limit. Keeping current value.");
+            }
+        }
+        
+        try {
+            Vendor result = vendorService.updateVendor(vendor.getId(), updatedVendor);
+            System.out.println("\n✅ Vendor updated successfully!");
+        } catch (Exception e) {
+            System.out.println("❌ Error updating vendor: " + e.getMessage());
         }
     }
 
-    // ==================== DELIVERY ORDERS MANAGEMENT ====================
-    private void manageDeliveryOrders() {
-        boolean back = false;
+    private void changeVendorStatus() {
+        System.out.print("\nEnter Vendor Code: ");
+        String vendorCode = scanner.nextLine().trim();
         
-        while (!back) {
-            System.out.println("\n╔══════════════════════════════════════════╗");
-            System.out.println("║        MANAGE DELIVERY ORDERS            ║");
-            System.out.println("╠══════════════════════════════════════════╣");
-            System.out.println("║  1. View All Delivery Orders             ║");
-            System.out.println("║  2. Create Delivery Order                ║");
-            System.out.println("║  3. Update Delivery Order                ║");
-            System.out.println("║  4. Delete Delivery Order                ║");
-            System.out.println("║  5. Back to Main Menu                    ║");
-            System.out.println("╚══════════════════════════════════════════╝");
-            System.out.print("\nEnter your choice (1-5): ");
-            
-            String choice = scanner.nextLine().trim();
+        Optional<Vendor> vendorOpt = vendorService.getVendorByCode(vendorCode);
+        if (vendorOpt.isEmpty()) {
+            System.out.println("❌ Vendor not found!");
+            return;
+        }
+        
+        Vendor vendor = vendorOpt.get();
+        System.out.println("\nCurrent Status: " + vendor.getStatus());
+        System.out.println("\nAvailable Statuses:");
+        System.out.println("1. ACTIVE");
+        System.out.println("2. INACTIVE");
+        System.out.println("3. SUSPENDED");
+        System.out.print("\nSelect new status (1-3): ");
+        
+        String choice = scanner.nextLine();
+        String newStatus;
+        
+        switch (choice) {
+            case "1": newStatus = "ACTIVE"; break;
+            case "2": newStatus = "INACTIVE"; break;
+            case "3": newStatus = "SUSPENDED"; break;
+            default:
+                System.out.println("❌ Invalid choice!");
+                return;
+        }
+        
+        try {
+            Vendor result = vendorService.changeVendorStatus(vendor.getId(), newStatus);
+            System.out.println("\n✅ Vendor status changed to: " + newStatus);
+        } catch (Exception e) {
+            System.out.println("❌ Error changing status: " + e.getMessage());
+        }
+    }
+
+    private void deleteVendor() {
+        System.out.print("\nEnter Vendor Code to delete: ");
+        String vendorCode = scanner.nextLine().trim();
+        
+        Optional<Vendor> vendorOpt = vendorService.getVendorByCode(vendorCode);
+        if (vendorOpt.isEmpty()) {
+            System.out.println("❌ Vendor not found!");
+            return;
+        }
+        
+        Vendor vendor = vendorOpt.get();
+        
+        System.out.println("\n⚠️ WARNING: Deleting Vendor");
+        System.out.println("Name: " + vendor.getName());
+        System.out.println("Code: " + vendor.getVendorCode());
+        System.out.println("Email: " + vendor.getEmail());
+        System.out.println("This will also delete all associated contacts!");
+        System.out.print("\nAre you sure? (yes/no): ");
+        
+        String confirm = scanner.nextLine().trim();
+        if (confirm.equalsIgnoreCase("yes")) {
+            try {
+                vendorService.deleteVendor(vendor.getId());
+                System.out.println("✅ Vendor deleted successfully!");
+            } catch (Exception e) {
+                System.out.println("❌ Error deleting vendor: " + e.getMessage());
+            }
+        } else {
+            System.out.println("❌ Deletion cancelled.");
+        }
+    }
+
+    // ==================== 2. MANAGE VENDOR GROUPS ====================
+    private void manageVendorGroups() {
+        while (true) {
+            System.out.println("\n=== MANAGE VENDOR GROUPS ===");
+            System.out.println("1. Add New Vendor Group");
+            System.out.println("2. View All Vendor Groups");
+            System.out.println("3. Update Vendor Group");
+            System.out.println("4. Delete Vendor Group");
+            System.out.println("0. Back");
+            System.out.print("Select: ");
+
+            String choice = scanner.nextLine();
             
             switch (choice) {
-                case "1":
-                    viewAllDeliveryOrders();
-                    break;
-                case "2":
-                    createDeliveryOrder();
-                    break;
-                case "3":
-                    updateDeliveryOrder();
-                    break;
-                case "4":
-                    deleteDeliveryOrder();
-                    break;
-                case "5":
-                    back = true;
-                    break;
-                default:
-                    System.out.println("\n❌ Invalid choice! Please enter a number between 1-5.");
+                case "1": addVendorGroup(); break;
+                case "2": viewAllVendorGroups(); break;
+                case "3": updateVendorGroup(); break;
+                case "4": deleteVendorGroup(); break;
+                case "0": return;
+                default: System.out.println("❌ Invalid option.");
             }
         }
     }
 
-    // ==================== SALES RETURNS MANAGEMENT ====================
-    private void manageSalesReturns() {
-        boolean back = false;
+    private void addVendorGroup() {
+        System.out.println("\n=== ADD NEW VENDOR GROUP ===");
         
-        while (!back) {
-            System.out.println("\n╔══════════════════════════════════════════╗");
-            System.out.println("║          MANAGE SALES RETURNS            ║");
-            System.out.println("╠══════════════════════════════════════════╣");
-            System.out.println("║  1. View All Sales Returns               ║");
-            System.out.println("║  2. Create Sales Return                  ║");
-            System.out.println("║  3. Update Sales Return                  ║");
-            System.out.println("║  4. Delete Sales Return                  ║");
-            System.out.println("║  5. Back to Main Menu                    ║");
-            System.out.println("╚══════════════════════════════════════════╝");
-            System.out.print("\nEnter your choice (1-5): ");
-            
-            String choice = scanner.nextLine().trim();
+        System.out.print("Group Name: ");
+        String name = scanner.nextLine().trim();
+        
+        System.out.print("Description: ");
+        String description = scanner.nextLine().trim();
+        
+        VendorGroup vendorGroup = new VendorGroup();
+        vendorGroup.setName(name);
+        vendorGroup.setDescription(description);
+        
+        try {
+            VendorGroup createdGroup = vendorService.createVendorGroup(vendorGroup);
+            System.out.println("\n✅ Vendor group added successfully!");
+            System.out.println("Group Code: " + createdGroup.getCode());
+            System.out.println("Group ID: " + createdGroup.getId());
+        } catch (Exception e) {
+            System.out.println("❌ Error adding vendor group: " + e.getMessage());
+        }
+    }
+
+    private void viewAllVendorGroups() {
+        List<VendorGroup> groups = vendorService.getAllVendorGroups();
+        
+        if (groups.isEmpty()) {
+            System.out.println("\n📭 No vendor groups found.");
+            return;
+        }
+
+        System.out.println("\n=========================== VENDOR GROUPS ===========================");
+        System.out.printf("%-4s %-15s %-25s %-40s%n", 
+            "No.", "Code", "Group Name", "Description");
+        System.out.println("--------------------------------------------------------------------");
+
+        int counter = 1;
+        
+        for (VendorGroup group : groups) {
+            System.out.printf("%-4d %-15s %-25s %-40s%n",
+                counter++,
+                group.getCode(),
+                truncate(group.getName(), 25),
+                truncate(group.getDescription(), 40));
+        }
+        
+        System.out.println("====================================================================");
+        
+        // Show vendor count per group
+        System.out.println("\n📊 Vendors per Group:");
+        for (VendorGroup group : groups) {
+            List<Vendor> vendors = vendorService.getVendorsByGroup(group.getId());
+            System.out.printf("  • %s: %d vendor(s)%n", group.getName(), vendors.size());
+        }
+    }
+
+    private void updateVendorGroup() {
+        System.out.print("\nEnter Vendor Group Code: ");
+        String groupCode = scanner.nextLine().trim();
+        
+        // Find group by code
+        Optional<VendorGroup> groupOpt = vendorService.getAllVendorGroups().stream()
+            .filter(g -> g.getCode().equals(groupCode))
+            .findFirst();
+        
+        if (groupOpt.isEmpty()) {
+            System.out.println("❌ Vendor group not found!");
+            return;
+        }
+        
+        VendorGroup group = groupOpt.get();
+        
+        System.out.println("\n=== UPDATE VENDOR GROUP: " + group.getName() + " ===");
+        System.out.println("Current Name: " + group.getName());
+        System.out.println("Current Description: " + group.getDescription());
+        
+        System.out.println("\nEnter new values (press Enter to keep current):");
+        
+        System.out.print("Name [" + group.getName() + "]: ");
+        String name = scanner.nextLine().trim();
+        
+        System.out.print("Description [" + group.getDescription() + "]: ");
+        String description = scanner.nextLine().trim();
+        
+        VendorGroup updatedGroup = new VendorGroup();
+        if (!name.isEmpty()) updatedGroup.setName(name);
+        if (!description.isEmpty()) updatedGroup.setDescription(description);
+        
+        try {
+            VendorGroup result = vendorService.updateVendorGroup(group.getId(), updatedGroup);
+            System.out.println("\n✅ Vendor group updated successfully!");
+        } catch (Exception e) {
+            System.out.println("❌ Error updating vendor group: " + e.getMessage());
+        }
+    }
+
+    private void deleteVendorGroup() {
+        System.out.print("\nEnter Vendor Group Code to delete: ");
+        String groupCode = scanner.nextLine().trim();
+        
+        // Find group by code
+        Optional<VendorGroup> groupOpt = vendorService.getAllVendorGroups().stream()
+            .filter(g -> g.getCode().equals(groupCode))
+            .findFirst();
+        
+        if (groupOpt.isEmpty()) {
+            System.out.println("❌ Vendor group not found!");
+            return;
+        }
+        
+        VendorGroup group = groupOpt.get();
+        
+        // Check if any vendor is using this group
+        List<Vendor> vendors = vendorService.getVendorsByGroup(group.getId());
+        
+        System.out.println("\n⚠️ WARNING: Deleting Vendor Group");
+        System.out.println("Name: " + group.getName());
+        System.out.println("Code: " + group.getCode());
+        System.out.println("Vendors using this group: " + vendors.size());
+        
+        if (!vendors.isEmpty()) {
+            System.out.println("\n❌ Cannot delete group with associated vendors!");
+            System.out.println("Please reassign or delete the following vendors first:");
+            for (Vendor vendor : vendors) {
+                System.out.println("  • " + vendor.getName() + " (" + vendor.getVendorCode() + ")");
+            }
+            return;
+        }
+        
+        System.out.print("\nAre you sure? (yes/no): ");
+        String confirm = scanner.nextLine().trim();
+        
+        if (confirm.equalsIgnoreCase("yes")) {
+            try {
+                vendorService.deleteVendorGroup(group.getId());
+                System.out.println("✅ Vendor group deleted successfully!");
+            } catch (Exception e) {
+                System.out.println("❌ Error deleting vendor group: " + e.getMessage());
+            }
+        } else {
+            System.out.println("❌ Deletion cancelled.");
+        }
+    }
+
+    // ==================== 3. MANAGE VENDOR CATEGORIES ====================
+    private void manageVendorCategories() {
+        while (true) {
+            System.out.println("\n=== MANAGE VENDOR CATEGORIES ===");
+            System.out.println("1. Add New Vendor Category");
+            System.out.println("2. View All Vendor Categories");
+            System.out.println("3. Update Vendor Category");
+            System.out.println("4. Delete Vendor Category");
+            System.out.println("0. Back");
+            System.out.print("Select: ");
+
+            String choice = scanner.nextLine();
             
             switch (choice) {
-                case "1":
-                    viewAllSalesReturns();
-                    break;
-                case "2":
-                    createSalesReturn();
-                    break;
-                case "3":
-                    updateSalesReturn();
-                    break;
-                case "4":
-                    deleteSalesReturn();
-                    break;
-                case "5":
-                    back = true;
-                    break;
-                default:
-                    System.out.println("\n❌ Invalid choice! Please enter a number between 1-5.");
+                case "1": addVendorCategory(); break;
+                case "2": viewAllVendorCategories(); break;
+                case "3": updateVendorCategory(); break;
+                case "4": deleteVendorCategory(); break;
+                case "0": return;
+                default: System.out.println("❌ Invalid option.");
             }
         }
     }
 
-    // ==================== SALES REPORTS ====================
-    private void viewSalesReports() {
-        boolean back = false;
+    private void addVendorCategory() {
+        System.out.println("\n=== ADD NEW VENDOR CATEGORY ===");
         
-        while (!back) {
-            System.out.println("\n╔══════════════════════════════════════════╗");
-            System.out.println("║              SALES REPORTS               ║");
-            System.out.println("╠══════════════════════════════════════════╣");
-            System.out.println("║  1. Sales Summary Report                 ║");
-            System.out.println("║  2. Daily Sales Report                   ║");
-            System.out.println("║  3. Customer Sales Report                ║");
-            System.out.println("║  4. Product Sales Report                 ║");
-            System.out.println("║  5. Back to Main Menu                    ║");
-            System.out.println("╚══════════════════════════════════════════╝");
-            System.out.print("\nEnter your choice (1-5): ");
-            
-            String choice = scanner.nextLine().trim();
+        System.out.print("Category Name: ");
+        String name = scanner.nextLine().trim();
+        
+        System.out.print("Description: ");
+        String description = scanner.nextLine().trim();
+        
+        VendorCategory vendorCategory = new VendorCategory();
+        vendorCategory.setName(name);
+        vendorCategory.setDescription(description);
+        
+        try {
+            VendorCategory createdCategory = vendorService.createVendorCategory(vendorCategory);
+            System.out.println("\n✅ Vendor category added successfully!");
+            System.out.println("Category Code: " + createdCategory.getCode());
+            System.out.println("Category ID: " + createdCategory.getId());
+        } catch (Exception e) {
+            System.out.println("❌ Error adding vendor category: " + e.getMessage());
+        }
+    }
+
+    private void viewAllVendorCategories() {
+        List<VendorCategory> categories = vendorService.getAllVendorCategories();
+        
+        if (categories.isEmpty()) {
+            System.out.println("\n📭 No vendor categories found.");
+            return;
+        }
+
+        System.out.println("\n=========================== VENDOR CATEGORIES ===========================");
+        System.out.printf("%-4s %-15s %-25s %-40s%n", 
+            "No.", "Code", "Category Name", "Description");
+        System.out.println("-----------------------------------------------------------------------");
+
+        int counter = 1;
+        
+        for (VendorCategory category : categories) {
+            System.out.printf("%-4d %-15s %-25s %-40s%n",
+                counter++,
+                category.getCode(),
+                truncate(category.getName(), 25),
+                truncate(category.getDescription(), 40));
+        }
+        
+        System.out.println("=======================================================================");
+        
+        // Show vendor count per category
+        System.out.println("\n📊 Vendors per Category:");
+        for (VendorCategory category : categories) {
+            List<Vendor> vendors = vendorService.getVendorsByCategory(category.getId());
+            System.out.printf("  • %s: %d vendor(s)%n", category.getName(), vendors.size());
+        }
+    }
+
+    private void updateVendorCategory() {
+        System.out.print("\nEnter Vendor Category Code: ");
+        String categoryCode = scanner.nextLine().trim();
+        
+        // Find category by code
+        Optional<VendorCategory> categoryOpt = vendorService.getAllVendorCategories().stream()
+            .filter(c -> c.getCode().equals(categoryCode))
+            .findFirst();
+        
+        if (categoryOpt.isEmpty()) {
+            System.out.println("❌ Vendor category not found!");
+            return;
+        }
+        
+        VendorCategory category = categoryOpt.get();
+        
+        System.out.println("\n=== UPDATE VENDOR CATEGORY: " + category.getName() + " ===");
+        System.out.println("Current Name: " + category.getName());
+        System.out.println("Current Description: " + category.getDescription());
+        
+        System.out.println("\nEnter new values (press Enter to keep current):");
+        
+        System.out.print("Name [" + category.getName() + "]: ");
+        String name = scanner.nextLine().trim();
+        
+        System.out.print("Description [" + category.getDescription() + "]: ");
+        String description = scanner.nextLine().trim();
+        
+        VendorCategory updatedCategory = new VendorCategory();
+        if (!name.isEmpty()) updatedCategory.setName(name);
+        if (!description.isEmpty()) updatedCategory.setDescription(description);
+        
+        try {
+            VendorCategory result = vendorService.updateVendorCategory(category.getId(), updatedCategory);
+            System.out.println("\n✅ Vendor category updated successfully!");
+        } catch (Exception e) {
+            System.out.println("❌ Error updating vendor category: " + e.getMessage());
+        }
+    }
+
+    private void deleteVendorCategory() {
+        System.out.print("\nEnter Vendor Category Code to delete: ");
+        String categoryCode = scanner.nextLine().trim();
+        
+        // Find category by code
+        Optional<VendorCategory> categoryOpt = vendorService.getAllVendorCategories().stream()
+            .filter(c -> c.getCode().equals(categoryCode))
+            .findFirst();
+        
+        if (categoryOpt.isEmpty()) {
+            System.out.println("❌ Vendor category not found!");
+            return;
+        }
+        
+        VendorCategory category = categoryOpt.get();
+        
+        // Check if any vendor is using this category
+        List<Vendor> vendors = vendorService.getVendorsByCategory(category.getId());
+        
+        System.out.println("\n⚠️ WARNING: Deleting Vendor Category");
+        System.out.println("Name: " + category.getName());
+        System.out.println("Code: " + category.getCode());
+        System.out.println("Vendors using this category: " + vendors.size());
+        
+        if (!vendors.isEmpty()) {
+            System.out.println("\n❌ Cannot delete category with associated vendors!");
+            System.out.println("Please reassign or delete the following vendors first:");
+            for (Vendor vendor : vendors) {
+                System.out.println("  • " + vendor.getName() + " (" + vendor.getVendorCode() + ")");
+            }
+            return;
+        }
+        
+        System.out.print("\nAre you sure? (yes/no): ");
+        String confirm = scanner.nextLine().trim();
+        
+        if (confirm.equalsIgnoreCase("yes")) {
+            try {
+                vendorService.deleteVendorCategory(category.getId());
+                System.out.println("✅ Vendor category deleted successfully!");
+            } catch (Exception e) {
+                System.out.println("❌ Error deleting vendor category: " + e.getMessage());
+            }
+        } else {
+            System.out.println("❌ Deletion cancelled.");
+        }
+    }
+
+    // ==================== 4. MANAGE VENDOR CONTACTS ====================
+    private void manageVendorContacts() {
+        while (true) {
+            System.out.println("\n=== MANAGE VENDOR CONTACTS ===");
+            System.out.println("1. Add Contact");
+            System.out.println("2. View Vendor Contacts");
+            System.out.println("3. Update Contact");
+            System.out.println("4. Delete Contact");
+            System.out.println("0. Back");
+            System.out.print("Select: ");
+
+            String choice = scanner.nextLine();
             
             switch (choice) {
-                case "1":
-                    viewSalesSummary();
-                    break;
-                case "2":
-                    viewDailySales();
-                    break;
-                case "3":
-                    viewCustomerSales();
-                    break;
-                case "4":
-                    viewProductSales();
-                    break;
-                case "5":
-                    back = true;
-                    break;
-                default:
-                    System.out.println("\n❌ Invalid choice! Please enter a number between 1-5.");
+                case "1": addContact(); break;
+                case "2": viewContacts(); break;
+                case "3": updateContact(); break;
+                case "4": deleteContact(); break;
+                case "0": return;
+                default: System.out.println("❌ Invalid option.");
             }
         }
+    }
+
+    private void addContact() {
+        System.out.print("\nEnter Vendor Code: ");
+        String vendorCode = scanner.nextLine().trim();
+        
+        Optional<Vendor> vendorOpt = vendorService.getVendorByCode(vendorCode);
+        if (vendorOpt.isEmpty()) {
+            System.out.println("❌ Vendor not found!");
+            return;
+        }
+        
+        Vendor vendor = vendorOpt.get();
+        
+        System.out.println("\n=== ADD CONTACT FOR: " + vendor.getName() + " ===");
+        
+        System.out.print("Contact Name: ");
+        String name = scanner.nextLine().trim();
+        
+        System.out.print("Position: ");
+        String position = scanner.nextLine().trim();
+        
+        System.out.print("Email: ");
+        String email = scanner.nextLine().trim();
+        
+        System.out.print("Phone: ");
+        String phone = scanner.nextLine().trim();
+        
+        System.out.print("Department: ");
+        String department = scanner.nextLine().trim();
+        
+        System.out.print("Is Primary Contact? (yes/no): ");
+        boolean isPrimary = scanner.nextLine().trim().equalsIgnoreCase("yes");
+        
+        VendorContact contact = new VendorContact();
+        contact.setName(name);
+        contact.setPosition(position);
+        contact.setEmail(email);
+        contact.setPhone(phone);
+        contact.setDepartment(department);
+        contact.setIsPrimary(isPrimary);
+        
+        try {
+            VendorContact createdContact = vendorService.createVendorContact(vendor.getId(), contact);
+            System.out.println("\n✅ Contact added successfully!");
+            System.out.println("Contact ID: " + createdContact.getId());
+        } catch (Exception e) {
+            System.out.println("❌ Error adding contact: " + e.getMessage());
+        }
+    }
+
+    private void viewContacts() {
+        System.out.print("\nEnter Vendor Code: ");
+        String vendorCode = scanner.nextLine().trim();
+        
+        Optional<Vendor> vendorOpt = vendorService.getVendorByCode(vendorCode);
+        if (vendorOpt.isEmpty()) {
+            System.out.println("❌ Vendor not found!");
+            return;
+        }
+        
+        Vendor vendor = vendorOpt.get();
+        List<VendorContact> contacts = vendorService.getVendorContacts(vendor.getId());
+        
+        if (contacts.isEmpty()) {
+            System.out.println("\n📭 No contacts found for this vendor.");
+            return;
+        }
+
+        System.out.println("\n=========================== CONTACTS FOR: " + vendor.getName() + " ===========================");
+        System.out.printf("%-4s %-25s %-20s %-25s %-15s %-10s%n", 
+            "No.", "Name", "Position", "Email", "Phone", "Primary");
+        System.out.println("------------------------------------------------------------------------------------------");
+
+        int counter = 1;
+        
+        for (VendorContact contact : contacts) {
+            String primary = contact.getIsPrimary() ? "✓" : "";
+            System.out.printf("%-4d %-25s %-20s %-25s %-15s %-10s%n",
+                counter++,
+                truncate(contact.getName(), 25),
+                truncate(contact.getPosition(), 20),
+                truncate(contact.getEmail(), 25),
+                truncate(contact.getPhone(), 15),
+                primary);
+        }
+        
+        System.out.println("==========================================================================================");
+        
+        // Show primary contact
+        Optional<VendorContact> primaryContact = vendorService.getPrimaryContact(vendor.getId());
+        if (primaryContact.isPresent()) {
+            System.out.println("\n📞 Primary Contact:");
+            System.out.println("  Name: " + primaryContact.get().getName());
+            System.out.println("  Email: " + primaryContact.get().getEmail());
+            System.out.println("  Phone: " + primaryContact.get().getPhone());
+        }
+    }
+
+    private void updateContact() {
+        System.out.print("\nEnter Vendor Code: ");
+        String vendorCode = scanner.nextLine().trim();
+        
+        Optional<Vendor> vendorOpt = vendorService.getVendorByCode(vendorCode);
+        if (vendorOpt.isEmpty()) {
+            System.out.println("❌ Vendor not found!");
+            return;
+        }
+        
+        Vendor vendor = vendorOpt.get();
+        List<VendorContact> contacts = vendorService.getVendorContacts(vendor.getId());
+        
+        if (contacts.isEmpty()) {
+            System.out.println("❌ No contacts found for this vendor.");
+            return;
+        }
+        
+        System.out.println("\nSelect contact to update:");
+        for (int i = 0; i < contacts.size(); i++) {
+            String primary = contacts.get(i).getIsPrimary() ? " (Primary)" : "";
+            System.out.printf("%d. %s - %s%s%n", 
+                i + 1, 
+                contacts.get(i).getName(),
+                contacts.get(i).getPosition(),
+                primary);
+        }
+        
+        System.out.print("Enter contact number: ");
+        try {
+            int contactNum = Integer.parseInt(scanner.nextLine().trim());
+            if (contactNum < 1 || contactNum > contacts.size()) {
+                System.out.println("❌ Invalid contact number.");
+                return;
+            }
+            
+            VendorContact contact = contacts.get(contactNum - 1);
+            
+            System.out.println("\n=== UPDATE CONTACT: " + contact.getName() + " ===");
+            System.out.println("Current Position: " + contact.getPosition());
+            System.out.println("Current Email: " + contact.getEmail());
+            System.out.println("Current Phone: " + contact.getPhone());
+            
+            System.out.println("\nEnter new values (press Enter to keep current):");
+            
+            System.out.print("Name [" + contact.getName() + "]: ");
+            String name = scanner.nextLine().trim();
+            
+            System.out.print("Position [" + contact.getPosition() + "]: ");
+            String position = scanner.nextLine().trim();
+            
+            System.out.print("Email [" + contact.getEmail() + "]: ");
+            String email = scanner.nextLine().trim();
+            
+            System.out.print("Phone [" + contact.getPhone() + "]: ");
+            String phone = scanner.nextLine().trim();
+            
+            System.out.print("Department [" + contact.getDepartment() + "]: ");
+            String department = scanner.nextLine().trim();
+            
+            System.out.print("Make Primary? (yes/no) [" + (contact.getIsPrimary() ? "yes" : "no") + "]: ");
+            String primaryStr = scanner.nextLine().trim();
+            
+            VendorContact updatedContact = new VendorContact();
+            if (!name.isEmpty()) updatedContact.setName(name);
+            if (!position.isEmpty()) updatedContact.setPosition(position);
+            if (!email.isEmpty()) updatedContact.setEmail(email);
+            if (!phone.isEmpty()) updatedContact.setPhone(phone);
+            if (!department.isEmpty()) updatedContact.setDepartment(department);
+            if (!primaryStr.isEmpty()) {
+                updatedContact.setIsPrimary(primaryStr.equalsIgnoreCase("yes"));
+            }
+            
+            VendorContact result = vendorService.updateVendorContact(contact.getId(), updatedContact);
+            System.out.println("\n✅ Contact updated successfully!");
+            
+        } catch (NumberFormatException e) {
+            System.out.println("❌ Invalid number.");
+        } catch (Exception e) {
+            System.out.println("❌ Error updating contact: " + e.getMessage());
+        }
+    }
+
+    private void deleteContact() {
+        System.out.print("\nEnter Vendor Code: ");
+        String vendorCode = scanner.nextLine().trim();
+        
+        Optional<Vendor> vendorOpt = vendorService.getVendorByCode(vendorCode);
+        if (vendorOpt.isEmpty()) {
+            System.out.println("❌ Vendor not found!");
+            return;
+        }
+        
+        Vendor vendor = vendorOpt.get();
+        List<VendorContact> contacts = vendorService.getVendorContacts(vendor.getId());
+        
+        if (contacts.isEmpty()) {
+            System.out.println("❌ No contacts found for this vendor.");
+            return;
+        }
+        
+        System.out.println("\nSelect contact to delete:");
+        for (int i = 0; i < contacts.size(); i++) {
+            String primary = contacts.get(i).getIsPrimary() ? " (Primary)" : "";
+            System.out.printf("%d. %s - %s%s%n", 
+                i + 1, 
+                contacts.get(i).getName(),
+                contacts.get(i).getPosition(),
+                primary);
+        }
+        
+        System.out.print("Enter contact number: ");
+        try {
+            int contactNum = Integer.parseInt(scanner.nextLine().trim());
+            if (contactNum < 1 || contactNum > contacts.size()) {
+                System.out.println("❌ Invalid contact number.");
+                return;
+            }
+            
+            VendorContact contact = contacts.get(contactNum - 1);
+            
+            System.out.println("\n⚠️ WARNING: Deleting Contact");
+            System.out.println("Name: " + contact.getName());
+            System.out.println("Position: " + contact.getPosition());
+            System.out.println("Email: " + contact.getEmail());
+            
+            if (contact.getIsPrimary()) {
+                System.out.println("⚠️ This is the primary contact!");
+            }
+            
+            System.out.print("\nAre you sure? (yes/no): ");
+            String confirm = scanner.nextLine().trim();
+            
+            if (confirm.equalsIgnoreCase("yes")) {
+                vendorService.deleteVendorContact(contact.getId());
+                System.out.println("✅ Contact deleted successfully!");
+            } else {
+                System.out.println("❌ Deletion cancelled.");
+            }
+            
+        } catch (NumberFormatException e) {
+            System.out.println("❌ Invalid number.");
+        }
+    }
+
+    // ==================== 5. VIEW REPORTS ====================
+    private void viewReports() {
+        while (true) {
+            System.out.println("\n=== VENDOR REPORTS ===");
+            System.out.println("1. Vendor Statistics");
+            System.out.println("2. Vendors by Group");
+            System.out.println("3. Vendors by Category");
+            System.out.println("4. Credit Limit Report");
+            System.out.println("0. Back");
+            System.out.print("Select: ");
+
+            String choice = scanner.nextLine();
+            
+            switch (choice) {
+                case "1": showVendorStatistics(); break;
+                case "2": showVendorsByGroup(); break;
+                case "3": showVendorsByCategory(); break;
+                case "4": showCreditLimitReport(); break;
+                case "0": return;
+                default: System.out.println("❌ Invalid option.");
+            }
+        }
+    }
+
+    private void showVendorStatistics() {
+        long totalVendors = vendorService.countAllVendors();
+        long activeVendors = vendorService.countActiveVendors();
+        long inactiveVendors = totalVendors - activeVendors;
+        
+        List<Vendor> allVendors = vendorService.getAllVendors();
+        double totalCreditLimit = allVendors.stream()
+            .mapToDouble(v -> v.getCreditLimit() != null ? v.getCreditLimit() : 0)
+            .sum();
+        
+        System.out.println("\n=========================== VENDOR STATISTICS ===========================");
+        System.out.println("📊 Summary:");
+        System.out.println("  Total Vendors: " + totalVendors);
+        System.out.println("  Active Vendors: " + activeVendors + " (" + (totalVendors > 0 ? (activeVendors * 100 / totalVendors) : 0) + "%)");
+        System.out.println("  Inactive/Suspended Vendors: " + inactiveVendors + " (" + (totalVendors > 0 ? (inactiveVendors * 100 / totalVendors) : 0) + "%)");
+        System.out.println("  Total Credit Limit: $" + String.format("%.2f", totalCreditLimit));
+        
+        System.out.println("\n📈 Status Distribution:");
+        long activeCount = allVendors.stream().filter(v -> v.getStatus().equals("ACTIVE")).count();
+        long inactiveCount = allVendors.stream().filter(v -> v.getStatus().equals("INACTIVE")).count();
+        long suspendedCount = allVendors.stream().filter(v -> v.getStatus().equals("SUSPENDED")).count();
+        
+        System.out.println("  ✅ ACTIVE: " + activeCount);
+        System.out.println("  ⏸️ INACTIVE: " + inactiveCount);
+        System.out.println("  🚫 SUSPENDED: " + suspendedCount);
+        
+        System.out.println("\n🏢 Vendor Groups:");
+        List<VendorGroup> groups = vendorService.getAllVendorGroups();
+        for (VendorGroup group : groups) {
+            List<Vendor> vendors = vendorService.getVendorsByGroup(group.getId());
+            System.out.printf("  • %s: %d vendor(s)%n", group.getName(), vendors.size());
+        }
+        
+        System.out.println("\n📂 Vendor Categories:");
+        List<VendorCategory> categories = vendorService.getAllVendorCategories();
+        for (VendorCategory category : categories) {
+            List<Vendor> vendors = vendorService.getVendorsByCategory(category.getId());
+            System.out.printf("  • %s: %d vendor(s)%n", category.getName(), vendors.size());
+        }
+        
+        System.out.println("========================================================================");
+    }
+
+    private void showVendorsByGroup() {
+        List<VendorGroup> groups = vendorService.getAllVendorGroups();
+        
+        if (groups.isEmpty()) {
+            System.out.println("\n📭 No vendor groups found.");
+            return;
+        }
+        
+        System.out.println("\n=========================== VENDORS BY GROUP ===========================");
+        
+        for (VendorGroup group : groups) {
+            List<Vendor> vendors = vendorService.getVendorsByGroup(group.getId());
+            
+            System.out.println("\n📋 Group: " + group.getName() + " (" + group.getCode() + ")");
+            System.out.println("Description: " + group.getDescription());
+            System.out.println("Number of Vendors: " + vendors.size());
+            
+            if (!vendors.isEmpty()) {
+                System.out.println("\n  Vendors:");
+                for (Vendor vendor : vendors) {
+                    System.out.printf("    • %s (%s) - %s%n", 
+                        vendor.getName(), 
+                        vendor.getVendorCode(),
+                        vendor.getStatus());
+                }
+            }
+            
+            System.out.println("--------------------------------------------------------------------");
+        }
+        
+        System.out.println("========================================================================");
+    }
+
+    private void showVendorsByCategory() {
+        List<VendorCategory> categories = vendorService.getAllVendorCategories();
+        
+        if (categories.isEmpty()) {
+            System.out.println("\n📭 No vendor categories found.");
+            return;
+        }
+        
+        System.out.println("\n=========================== VENDORS BY CATEGORY ===========================");
+        
+        for (VendorCategory category : categories) {
+            List<Vendor> vendors = vendorService.getVendorsByCategory(category.getId());
+            
+            System.out.println("\n📂 Category: " + category.getName() + " (" + category.getCode() + ")");
+            System.out.println("Description: " + category.getDescription());
+            System.out.println("Number of Vendors: " + vendors.size());
+            
+            if (!vendors.isEmpty()) {
+                System.out.println("\n  Vendors:");
+                for (Vendor vendor : vendors) {
+                    System.out.printf("    • %s (%s) - %s%n", 
+                        vendor.getName(), 
+                        vendor.getVendorCode(),
+                        vendor.getStatus());
+                }
+            }
+            
+            System.out.println("----------------------------------------------------------------------");
+        }
+        
+        System.out.println("==========================================================================");
+    }
+
+    private void showCreditLimitReport() {
+        List<Vendor> vendors = vendorService.getAllVendors();
+        
+        if (vendors.isEmpty()) {
+            System.out.println("\n📭 No vendors found.");
+            return;
+        }
+        
+        System.out.println("\n=========================== CREDIT LIMIT REPORT ===========================");
+        System.out.println("⚠️ Vendors with High Credit Limits (Above $10,000):");
+        
+        long highCreditCount = 0;
+        double totalHighCredit = 0;
+        
+        for (Vendor vendor : vendors) {
+            double creditLimit = vendor.getCreditLimit() != null ? vendor.getCreditLimit() : 0;
+            if (creditLimit > 10000) {
+                highCreditCount++;
+                totalHighCredit += creditLimit;
+                System.out.printf("    • %s (%s): $%,.2f%n", 
+                    vendor.getName(), 
+                    vendor.getVendorCode(),
+                    creditLimit);
+            }
+        }
+        
+        if (highCreditCount == 0) {
+            System.out.println("    None");
+        }
+        
+        System.out.println("\n📊 Credit Limit Summary:");
+        double totalCreditLimit = vendors.stream()
+            .mapToDouble(v -> v.getCreditLimit() != null ? v.getCreditLimit() : 0)
+            .sum();
+        
+        double avgCreditLimit = vendors.size() > 0 ? totalCreditLimit / vendors.size() : 0;
+        
+        System.out.println("  Total Credit Limit: $ " + String.format("%,.2f", totalCreditLimit));
+        System.out.println("  Average Credit Limit: $ " + String.format("%,.2f", avgCreditLimit));
+        System.out.println("  Vendors with High Credit (>$10K): " + highCreditCount);
+        System.out.println("  Total High Credit: $ " + String.format("%,.2f", totalHighCredit));
+        
+        System.out.println("\n💰 Top 5 Vendors by Credit Limit:");
+        vendors.stream()
+            .sorted((v1, v2) -> {
+                double c1 = v1.getCreditLimit() != null ? v1.getCreditLimit() : 0;
+                double c2 = v2.getCreditLimit() != null ? v2.getCreditLimit() : 0;
+                return Double.compare(c2, c1);
+            })
+            .limit(5)
+            .forEach(v -> {
+                double credit = v.getCreditLimit() != null ? v.getCreditLimit() : 0;
+                System.out.printf("    • %s (%s): $%,.2f%n", 
+                    v.getName(), 
+                    v.getVendorCode(),
+                    credit);
+            });
+        
+        System.out.println("==========================================================================");
     }
 
     // ==================== HELPER METHODS ====================
-    private LocalDate getDateInput(String prompt, LocalDate defaultValue) {
-        System.out.print(prompt + " [" + defaultValue.format(dateFormatter) + "]: ");
-        String dateStr = scanner.nextLine().trim();
-        
-        if (dateStr.isEmpty()) {
-            return defaultValue;
-        }
-        
-        try {
-            return LocalDate.parse(dateStr, dateFormatter);
-        } catch (DateTimeParseException e) {
-            System.out.println("⚠️  Invalid date format. Using default: " + defaultValue.format(dateFormatter));
-            return defaultValue;
-        }
-    }
-
-    private String selectTax() {
-        List<Tax> taxes = salesOrderService.getAllTaxes();
-        
-        if (taxes.isEmpty()) {
-            System.out.println("No taxes available.");
-            return null;
-        }
-        
-        System.out.println("\nSelect Tax Rate:");
-        System.out.println("0. No Tax");
-        for (int i = 0; i < taxes.size(); i++) {
-            Tax tax = taxes.get(i);
-            System.out.printf("%d. %s - %.2f%%%n", i + 1, tax.getTaxName(), tax.getTaxRate());
-        }
-        
-        System.out.print("Enter choice (0-" + taxes.size() + "): ");
-        String choice = scanner.nextLine().trim();
-        
-        try {
-            int taxChoice = Integer.parseInt(choice);
-            if (taxChoice == 0) {
-                return null;
-            } else if (taxChoice > 0 && taxChoice <= taxes.size()) {
-                return taxes.get(taxChoice - 1).getId();
-            }
-        } catch (NumberFormatException e) {
-            // Invalid input
-        }
-        
-        System.out.println("⚠️  Invalid choice. No tax will be applied.");
-        return null;
-    }
-
-    private BigDecimal calculateOrderTotal(SalesOrder order, List<SalesOrderItem> items) {
-        BigDecimal subtotal = BigDecimal.ZERO;
-        
-        for (SalesOrderItem item : items) {
-            subtotal = subtotal.add(item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
-        }
-        
-        if (order.getTaxId() != null) {
-            BigDecimal taxRate = salesOrderService.getTaxRateById(order.getTaxId());
-            BigDecimal taxAmount = subtotal.multiply(taxRate).divide(BigDecimal.valueOf(100));
-            return subtotal.add(taxAmount);
-        }
-        
-        return subtotal;
-    }
-
-    // ==================== STUB METHODS (to be implemented) ====================
-    private void updateOrderItem(String orderId) {
-        System.out.println("\n⚠️  Update Order Item - To be implemented");
-    }
-
-    private void removeOrderItem(String orderId) {
-        System.out.println("\n⚠️  Remove Order Item - To be implemented");
-    }
-
-    private void viewAllDeliveryOrders() {
-        System.out.println("\n⚠️  View All Delivery Orders - To be implemented");
-    }
-
-    private void createDeliveryOrder() {
-        System.out.println("\n⚠️  Create Delivery Order - To be implemented");
-    }
-
-    private void updateDeliveryOrder() {
-        System.out.println("\n⚠️  Update Delivery Order - To be implemented");
-    }
-
-    private void deleteDeliveryOrder() {
-        System.out.println("\n⚠️  Delete Delivery Order - To be implemented");
-    }
-
-    private void viewAllSalesReturns() {
-        System.out.println("\n⚠️  View All Sales Returns - To be implemented");
-    }
-
-    private void createSalesReturn() {
-        System.out.println("\n⚠️  Create Sales Return - To be implemented");
-    }
-
-    private void updateSalesReturn() {
-        System.out.println("\n⚠️  Update Sales Return - To be implemented");
-    }
-
-    private void deleteSalesReturn() {
-        System.out.println("\n⚠️  Delete Sales Return - To be implemented");
-    }
-
-    private void viewSalesSummary() {
-        System.out.println("\n⚠️  Sales Summary Report - To be implemented");
-    }
-
-    private void viewDailySales() {
-        System.out.println("\n⚠️  Daily Sales Report - To be implemented");
-    }
-
-    private void viewCustomerSales() {
-        System.out.println("\n⚠️  Customer Sales Report - To be implemented");
-    }
-
-    private void viewProductSales() {
-        System.out.println("\n⚠️  Product Sales Report - To be implemented");
+    private String truncate(String text, int length) {
+        if (text == null) return "";
+        if (text.length() <= length) return text;
+        return text.substring(0, length - 3) + "...";
     }
 }

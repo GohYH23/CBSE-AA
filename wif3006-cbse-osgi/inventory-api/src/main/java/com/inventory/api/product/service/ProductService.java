@@ -6,36 +6,37 @@ import java.util.List;
 import java.util.Scanner;
 
 public interface ProductService {
-    // Product
+    // --- Product ---
     void addProduct(Product product);
-    void updateProduct(Product product); // <-- NEW
+    void updateProduct(Product product);
     void deleteProduct(String id);
     List<Product> getAllProducts();
-    Product getProduct(String id);       // <-- NEW
+    Product getProduct(String id);
 
-    // ... inside ProductService interface ...
-
-    // Group
+    // --- Group ---
     void addProductGroup(ProductGroup group);
-    void updateProductGroup(ProductGroup group); // <--- NEW
+    void updateProductGroup(ProductGroup group);
     void deleteProductGroup(String id);
     List<ProductGroup> getAllProductGroups();
 
-    // UOM
+    // --- UOM ---
     void addUnitMeasure(UnitMeasure uom);
-    void updateUnitMeasure(UnitMeasure uom);     // <--- NEW
+    void updateUnitMeasure(UnitMeasure uom);
     void deleteUnitMeasure(String id);
     List<UnitMeasure> getAllUnitMeasures();
 
-    // Warehouse
+    // --- Warehouse ---
     void addWarehouse(Warehouse warehouse);
-    void updateWarehouse(Warehouse warehouse);   // <--- NEW
+    void updateWarehouse(Warehouse warehouse);
     void deleteWarehouse(String name);
     List<Warehouse> getAllWarehouses();
 
-    // Stock
+    // --- Stock ---
     void addStockCount(StockCount stock);
     List<StockCount> getAllStockCounts();
 
+    String completeStockCount(String countId);
+
+    // --- Menu ---
     void showMenu(Scanner scanner);
 }

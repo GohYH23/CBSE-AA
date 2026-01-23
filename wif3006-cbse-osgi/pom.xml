@@ -16,6 +16,7 @@
         <module>inventory-launcher</module>
         <module>product-bundle</module>
         <module>main-bundle</module>
+        <module>vendor-bundle</module>  <!-- Add this line -->
     </modules>
 
     <properties>
@@ -25,6 +26,9 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <maven.compiler.release>17</maven.compiler.release>
+        <!-- Add test dependencies versions -->
+        <junit.version>4.13.2</junit.version>
+        <mockito.version>3.12.4</mockito.version>
     </properties>
 
     <dependencyManagement>
@@ -35,6 +39,33 @@
                 <version>${osgi.version}</version>
                 <scope>provided</scope>
             </dependency>
+            
+            <!-- Test dependencies managed -->
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
+            </dependency>
+            
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>${mockito.version}</version>
+                <scope>test</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
+    
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.1.2</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
 </project>

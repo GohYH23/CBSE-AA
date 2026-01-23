@@ -41,6 +41,7 @@ public class ProductServiceImplTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        // Reflection is required because fields are private in OSGi Impl
         setField(productService, "productCollection", productCollection);
         setField(productService, "productGroupCollection", productGroupCollection);
         setField(productService, "unitMeasureCollection", unitMeasureCollection);
@@ -90,7 +91,6 @@ public class ProductServiceImplTest {
     void testUpdateProduct_ShouldUpdateOne() {
         Product product = new Product("101", "Updated Apple", 3.00, "g1", "u1");
         productService.updateProduct(product);
-
         verify(productCollection, times(1)).updateOne(any(Bson.class), any(Bson.class));
     }
 
@@ -164,11 +164,35 @@ public class ProductServiceImplTest {
         when(stockCountCollection.find()).thenReturn(findIterable);
         when(findIterable.iterator()).thenReturn(cursor);
         when(cursor.hasNext()).thenReturn(true, false);
-
         when(cursor.next()).thenReturn(new Document("id", "SC-001").append("status", "Pending"));
 
         List<StockCount> list = productService.getAllStockCounts();
         assertEquals(1, list.size());
         assertEquals("SC-001", list.get(0).getCountId());
+    }
+
+    @Test
+    void testCompleteStockCount_Success() {
+        // Mock the DB returning "1 row updated"
+        when(stockCountCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(updateResult);
+        when(updateResult.getMatchedCount()).thenReturn(1L);
+
+        String result = productService.completeStockCount("SC-001");
+
+        // Assert success message
+        assertTrue(result.contains("marked as Completed"));
+        verify(stockCountCollection, times(1)).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void testCompleteStockCount_NotFound() {
+        // Mock the DB returning "0 rows updated" (ID not found)
+        when(stockCountCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(updateResult);
+        when(updateResult.getMatchedCount()).thenReturn(0L);
+
+        String result = productService.completeStockCount("SC-999");
+
+        // Assert error message
+        assertTrue(result.contains("Error: Stock Count ID not found"));
     }
 }

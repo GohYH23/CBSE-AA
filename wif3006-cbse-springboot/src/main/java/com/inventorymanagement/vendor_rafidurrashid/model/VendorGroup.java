@@ -1,4 +1,4 @@
-package com.inventorymanagement.vendor_Rafid.model;
+package com.inventorymanagement.vendor_rafidurrashid.model;
 
 
 

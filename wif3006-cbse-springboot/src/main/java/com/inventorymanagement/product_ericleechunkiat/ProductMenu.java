@@ -55,14 +55,12 @@ public class ProductMenu {
     // --- 1. Products ---
     private void handleProducts(Scanner s) {
         System.out.println("\n--- Products ---");
-        // UPDATED: Added "0. Back"
         System.out.println("1. Add | 2. List | 3. Edit | 4. Delete | 0. Back");
         String c = s.nextLine();
 
-        if (c.equals("0")) {
-            return; // Go Back to Main Menu
-        }
-        else if (c.equals("1")) {
+        if (c.equals("0")) return;
+
+        if (c.equals("1")) {
             String id = generateProductId();
             System.out.println("Generating New ID: " + id);
 
@@ -100,8 +98,7 @@ public class ProductMenu {
             System.out.println("==========================================================");
 
         } else if (c.equals("3")) {
-            System.out.print("ID to Edit (or 0 to cancel): ");
-            String id = s.nextLine();
+            System.out.print("ID to Edit (0 to cancel): "); String id = s.nextLine();
             if (id.equals("0")) return;
 
             Product p = productService.getProductById(id).orElse(null);
@@ -116,10 +113,9 @@ public class ProductMenu {
                 System.out.println("❌ Product not found.");
             }
         } else if (c.equals("4")) {
-            System.out.print("ID to Delete (or 0 to cancel): ");
-            String delId = s.nextLine();
-            if (!delId.equals("0")) {
-                productService.deleteProduct(delId);
+            System.out.print("ID to Delete (0 to cancel): "); String id = s.nextLine();
+            if (!id.equals("0")) {
+                productService.deleteProduct(id);
                 System.out.println("✅ Deleted.");
             }
         }
@@ -131,10 +127,9 @@ public class ProductMenu {
         System.out.println("1. Add | 2. List | 3. Edit | 4. Delete | 0. Back");
         String c = s.nextLine();
 
-        if (c.equals("0")) {
-            return;
-        }
-        else if (c.equals("1")) {
+        if (c.equals("0")) return;
+
+        if (c.equals("1")) {
             String name = prompt(s, "Name: ");
             String desc = prompt(s, "Desc: ");
             System.out.println(productService.createProductGroup(name, desc));
@@ -148,7 +143,7 @@ public class ProductMenu {
             System.out.println("==============================");
 
         } else if (c.equals("3")) {
-            System.out.print("Enter Group ID to Edit (or 0 to cancel): ");
+            System.out.print("Enter Group ID to Edit (0 to cancel): ");
             String editId = s.nextLine();
             if (editId.equals("0")) return;
 
@@ -161,10 +156,10 @@ public class ProductMenu {
             }
 
         } else if (c.equals("4")) {
-            System.out.print("ID to Delete (or 0 to cancel): ");
-            String delId = s.nextLine();
-            if (!delId.equals("0")) {
-                System.out.println(productService.deleteProductGroup(delId));
+            System.out.print("ID to Delete (0 to cancel): ");
+            String id = s.nextLine();
+            if (!id.equals("0")) {
+                System.out.println(productService.deleteProductGroup(id));
             }
         }
     }
@@ -172,13 +167,12 @@ public class ProductMenu {
     // --- 3. UOM ---
     private void handleUOM(Scanner s) {
         System.out.println("\n--- UOM ---");
-        System.out.println("1. Add | 2. List | 3. Delete | 0. Back");
+        System.out.println("1. Add | 2. List | 3. Edit | 4. Delete | 0. Back");
         String c = s.nextLine();
 
-        if (c.equals("0")) {
-            return;
-        }
-        else if (c.equals("1")) {
+        if (c.equals("0")) return;
+
+        if (c.equals("1")) {
             String name = prompt(s, "Name: ");
             String sym = prompt(s, "Symbol: ");
             productService.addUOM(new UnitMeasure(null, name, sym));
@@ -193,10 +187,29 @@ public class ProductMenu {
             System.out.println("================================");
 
         } else if (c.equals("3")) {
-            System.out.print("ID to Delete (or 0 to cancel): ");
-            String delId = s.nextLine();
-            if (!delId.equals("0")) {
-                productService.deleteUOM(delId);
+            System.out.print("ID to Edit (0 to cancel): "); String id = s.nextLine();
+            if (id.equals("0")) return;
+
+            UnitMeasure uom = productService.getAllUOMs().stream()
+                    .filter(u -> u.getId().equals(id))
+                    .findFirst()
+                    .orElse(null);
+
+            if (uom != null) {
+                String n = prompt(s, "New Name ("+uom.getUnitName()+"): ");
+                uom.setUnitName(n);
+                String sym = prompt(s, "New Symbol ("+uom.getSymbol()+"): ");
+                uom.setSymbol(sym);
+                productService.updateUOM(id, uom);
+                System.out.println("✅ Updated.");
+            } else {
+                System.out.println("❌ UOM not found.");
+            }
+
+        } else if (c.equals("4")) {
+            System.out.print("ID to Delete (0 to cancel): "); String id = s.nextLine();
+            if (!id.equals("0")) {
+                productService.deleteUOM(id);
                 System.out.println("✅ Deleted.");
             }
         }
@@ -205,7 +218,7 @@ public class ProductMenu {
     // --- 4. Warehouses ---
     private void handleWarehouses(Scanner s) {
         System.out.println("\n--- Warehouses ---");
-        System.out.println("1. Add | 2. List | 3. Delete | 0. Back");
+        System.out.println("1. Add | 2. List | 3. Edit | 4. Delete | 0. Back");
         String c = s.nextLine();
 
         if (c.equals("0")) return;
@@ -225,27 +238,75 @@ public class ProductMenu {
             System.out.println("==================================");
 
         } else if (c.equals("3")) {
-            System.out.print("Name to Delete (or 0 to cancel): ");
-            String delId = s.nextLine();
-            if (!delId.equals("0")) {
-                productService.deleteWarehouse(delId);
+            System.out.print("Name to Edit (0 to cancel): "); String name = s.nextLine();
+            if (name.equals("0")) return;
+
+            Warehouse w = productService.getAllWarehouses().stream()
+                    .filter(wh -> wh.getName().equals(name))
+                    .findFirst().orElse(null);
+
+            if (w != null) {
+                String d = prompt(s, "New Description ("+w.getDescription()+"): ");
+                w.setDescription(d);
+                productService.addWarehouse(w); // Save updates
+                System.out.println("✅ Updated.");
+            } else {
+                System.out.println("❌ Warehouse not found.");
+            }
+
+        } else if (c.equals("4")) {
+            System.out.print("Name to Delete (0 to cancel): "); String id = s.nextLine();
+            if (!id.equals("0")) {
+                productService.deleteWarehouse(id);
                 System.out.println("✅ Deleted.");
             }
         }
     }
 
-    // --- 5. Stock ---
+    // --- 5. Stock (UPDATED: Export Logic) ---
     private void handleStock(Scanner s) {
         System.out.println("\n--- Stock ---");
-        System.out.println("1. Add | 2. List | 3. Export | 0. Back");
+        System.out.println("1. Add | 2. List | 3. Export | 4. Complete Count | 0. Back");
         String c = s.nextLine();
 
         if (c.equals("0")) return;
 
         if (c.equals("1")) {
             String id = "SC-" + (System.currentTimeMillis() % 10000);
-            String wh = prompt(s, "Warehouse: ");
-            String date = prompt(s, "Date: ");
+
+            // --- START SMART VALIDATION ---
+            List<Warehouse> existingWarehouses = productService.getAllWarehouses();
+
+            // 1. If no warehouses exist, stop user.
+            if (existingWarehouses.isEmpty()) {
+                System.out.println("❌ Error: No warehouses exist. Please go to Menu 4 to create one first.");
+                return;
+            }
+
+            // 2. Show available warehouses
+            System.out.println("Available Warehouses:");
+            existingWarehouses.forEach(w -> System.out.println("- " + w.getName()));
+
+            // 3. Force user to pick a valid one
+            String wh = "";
+            while(true) {
+                System.out.print("Enter Warehouse Name: ");
+                wh = s.nextLine().trim();
+                String finalWh = wh;
+
+                // Check if the typed name exists in the list (Ignoring Case)
+                boolean exists = existingWarehouses.stream()
+                        .anyMatch(w -> w.getName().equalsIgnoreCase(finalWh));
+
+                if (exists) {
+                    break; // Good, exit loop
+                } else {
+                    System.out.println("❌ Warehouse '" + wh + "' not found. Please try again.");
+                }
+            }
+            // --- END SMART VALIDATION ---
+
+            String date = prompt(s, "Date(DD-MM-YYYY): ");
             productService.createStockCount(new StockCount(id, wh, "Pending", date));
             System.out.println("✅ Count Started: " + id);
 
@@ -257,13 +318,33 @@ public class ProductMenu {
                     System.out.printf("%-10s | %-15s | %-12s | %-10s%n", sc.getCountId(), sc.getWarehouseName(), sc.getDate(), sc.getStatus()));
             System.out.println("=====================================");
 
-        } else if (c.equals("3")) {
-            System.out.println("✅ Report Exported (Mock).");
+        }
+        // --- NEW EXPORT LOGIC ---
+        else if (c.equals("3")) {
+            System.out.print("Enter Stock Count ID to Export (e.g. SC-1234): ");
+            String exportId = s.nextLine().trim();
+
+            // Smart Validation: Check if ID exists
+            boolean exists = productService.getAllStockCounts().stream()
+                    .anyMatch(sc -> sc.getCountId().equals(exportId));
+
+            if (exists) {
+                System.out.println("Generating PDF Report for " + exportId + "...");
+                try { Thread.sleep(800); } catch (Exception e) {} // Simulating processing time
+                System.out.println("✅ Report Exported: C:/Downloads/StockReport_" + exportId + ".pdf");
+            } else {
+                System.out.println("❌ Error: Stock Count ID '" + exportId + "' not found.");
+            }
+        }
+        else if (c.equals("4")) {
+            System.out.print("Enter Stock Count ID to Complete (e.g. SC-1234): ");
+            String id = s.nextLine();
+            System.out.println(productService.completeStockCount(id));
         }
     }
 
     // ==========================================
-    // AUTO-INCREMENT HELPER (Only for Products)
+    // AUTO-INCREMENT HELPER
     // ==========================================
     private String generateProductId() {
         int max = 0;

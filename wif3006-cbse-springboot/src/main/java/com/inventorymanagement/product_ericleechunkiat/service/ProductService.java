@@ -25,10 +25,6 @@ public class ProductService {
         if (productRepository.existsByNameIgnoreCase(product.getName())) {
             throw new RuntimeException("Error: Product '" + product.getName() + "' already exists.");
         }
-
-        // Optional: If you want Products to be 1, 2, 3 as well, add the logic here.
-        // For now, we let the Menu or MongoDB handle Product IDs, or we can use the same logic below.
-
         return productRepository.save(product);
     }
 
@@ -153,6 +149,19 @@ public class ProductService {
             throw new RuntimeException("Cannot Delete: UOM is in use.");
         }
         uomRepository.deleteById(id);
+    }
+
+    // Inside ProductService.class
+
+    public String completeStockCount(String countId) {
+        Optional<StockCount> scOpt = stockRepository.findById(countId);
+        if (scOpt.isPresent()) {
+            StockCount sc = scOpt.get();
+            sc.setStatus("Completed"); // Updates status
+            stockRepository.save(sc);
+            return "Stock Count " + countId + " marked as Completed.";
+        }
+        return " Error: Stock Count ID not found.";
     }
 
     // ================= WAREHOUSE LOGIC =================

@@ -361,8 +361,8 @@ public class SalesOrderMenu {
             System.out.println("No items found for this order.");
         } else {
             System.out.println("\n--- Sales Order Items ---");
-            System.out.printf("%-4s %-20s %-15s %-12s %-10s %-15s %-17s %-17s%n",
-                    "No.", "Product", "Product Number", "Unit Price", "Quantity", "Total", "Created Date", "Updated Date");
+            System.out.printf("%-4s %-20s %-12s %-10s %-15s %-17s %-17s%n",
+                    "No.", "Product", "Unit Price", "Quantity", "Total", "Created Date", "Updated Date");
             System.out.println("----------------------------------------------------------------------------------------------------------------------------");
 
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
@@ -376,10 +376,9 @@ public class SalesOrderMenu {
                 String createdDate = (item.getCreatedDate() != null) ? item.getCreatedDate().format(formatter) : "N/A";
                 String updatedDate = (item.getUpdatedDate() != null) ? item.getUpdatedDate().format(formatter) : "-";
 
-                System.out.printf("%-4d %-20s %-15s %-12s %-10d %-15s %-17s %-17s%n",
+                System.out.printf("%-4d %-20s %-12s %-10d %-15s %-17s %-17s%n",
                         i++,
                         productName,
-                        item.getProductNumber() != null ? item.getProductNumber() : "N/A",
                         item.getUnitPrice(),
                         item.getQuantity(),
                         itemTotal,
@@ -387,7 +386,7 @@ public class SalesOrderMenu {
                         updatedDate);
             }
             System.out.println("----------------------------------------------------------------------------------------------------------------------------");
-            System.out.printf("%-62s %-15s%n", "Grand Total:", grandTotal);
+            System.out.printf("%-48s %-15s%n", "Grand Total:", grandTotal);
         }
     }
 
@@ -428,15 +427,11 @@ public class SalesOrderMenu {
             return;
         }
 
-        System.out.print("Enter Product Number (or press Enter to skip): ");
-        String productNumber = scanner.nextLine();
-
         SalesOrderItem item = new SalesOrderItem();
         item.setSalesOrderId(orderId);
         item.setProductId(productId);
         item.setUnitPrice(unitPrice);
         item.setQuantity(quantity);
-        item.setProductNumber(productNumber.trim().isEmpty() ? null : productNumber);
 
         salesOrderService.addSalesOrderItem(item);
         System.out.println("Item added successfully! Order totals will be recalculated.");
@@ -565,7 +560,7 @@ public class SalesOrderMenu {
                     orderTotal);
         }
         System.out.println("------------------------------------------------------------------------");
-        System.out.printf("%-46s %-15s%n", "Overall Total:", overallTotal);
+        System.out.printf("%-50s %-15s%n", "Overall Total:", overallTotal);
 
         // Detailed view option
         System.out.print("\nView detailed items for an order? (Enter Order Number or 'no'): ");
@@ -591,8 +586,8 @@ public class SalesOrderMenu {
         List<SalesOrderItem> items = salesOrderService.getItemsByOrderId(order.getId());
         
         System.out.println("\n--- Items ---");
-        System.out.printf("%-20s %-15s %-12s %-10s %-15s%n",
-                "Product", "Product Number", "Unit Price", "Quantity", "Total");
+        System.out.printf("%-20s %-12s %-10s %-15s%n",
+                "Product", "Unit Price", "Quantity", "Total");
         System.out.println("------------------------------------------------------------------------------");
 
         BigDecimal subtotal = BigDecimal.ZERO;
@@ -601,24 +596,23 @@ public class SalesOrderMenu {
             BigDecimal itemTotal = item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
             subtotal = subtotal.add(itemTotal);
 
-            System.out.printf("%-20s %-15s %-12s %-10d %-15s%n",
+            System.out.printf("%-20s %-12s %-10d %-15s%n",
                     productName,
-                    item.getProductNumber() != null ? item.getProductNumber() : "N/A",
                     item.getUnitPrice(),
                     item.getQuantity(),
                     itemTotal);
         }
 
         System.out.println("------------------------------------------------------------------------------");
-        System.out.printf("%-58s %-15s%n", "Subtotal:", subtotal);
+        System.out.printf("%-44s %-15s%n", "Subtotal:", subtotal);
 
         if (order.getTaxId() != null) {
             BigDecimal taxRate = salesOrderService.getTaxRateById(order.getTaxId());
             BigDecimal taxAmount = subtotal.multiply(taxRate).divide(BigDecimal.valueOf(100));
-            System.out.printf("%-58s %-15s (%s%%)%n", "Tax:", taxAmount, taxRate);
-            System.out.printf("%-58s %-15s%n", "Total:", subtotal.add(taxAmount));
+            System.out.printf("%-44s %-15s (%s%%)%n", "Tax:", taxAmount, taxRate);
+            System.out.printf("%-44s %-15s%n", "Total:", subtotal.add(taxAmount));
         } else {
-            System.out.printf("%-58s %-15s%n", "Total:", subtotal);
+            System.out.printf("%-44s %-15s%n", "Total:", subtotal);
         }
     }
 

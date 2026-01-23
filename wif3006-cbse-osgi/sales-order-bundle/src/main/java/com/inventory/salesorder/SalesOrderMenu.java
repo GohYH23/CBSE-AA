@@ -328,9 +328,9 @@ public class SalesOrderMenu implements ModuleMenu {
                         System.out.println("No items found for this order.");
                     } else {
                         System.out.println("\n--- Sales Order Items ---");
-                        System.out.printf("%-4s %-20s %-15s %-12s %-10s %-15s %-20s %-20s%n",
-                                "No.", "Product", "Product Number", "Unit Price", "Quantity", "Total", "Created At", "Edited At");
-                        System.out.println("--------------------------------------------------------------------------------------------------------------------------------");
+                        System.out.printf("%-4s %-30s %-12s %-10s %-15s %-20s %-20s%n",
+                                "No.", "Product", "Unit Price", "Quantity", "Total", "Created At", "Edited At");
+                        System.out.println("-------------------------------------------------------------------------------------------------------------------------------");
 
                         int i = 1;
                         BigDecimal grandTotal = BigDecimal.ZERO;
@@ -341,13 +341,12 @@ public class SalesOrderMenu implements ModuleMenu {
                             String created = formatDate(item.getCreatedAt());
                             String edited = formatDate(item.getEditedAt());
 
-                            System.out.printf("%-4d %-20s %-15s %-12s %-10d %-15s %-20s %-20s%n",
-                                    i++, productName,
-                                    item.getProductNumber() != null ? item.getProductNumber() : "N/A",
-                                    item.getUnitPrice(), item.getQuantity(), itemTotal, created, edited);
+                            System.out.printf("%-4d %-30s %-12s %-10d %-15s %-20s %-20s%n",
+                                    i++, productName, item.getUnitPrice(), item.getQuantity(), 
+                                    itemTotal, created, edited);
                         }
-                        System.out.println("--------------------------------------------------------------------------------------------------------------------------------");
-                        System.out.printf("%-62s %-15s%n", "Grand Total:", grandTotal);
+                        System.out.println("-------------------------------------------------------------------------------------------------------------------------------");
+                        System.out.printf("%-59s %-15s%n", "Grand Total:", grandTotal);
                     }
                     break;
                 case "2":
@@ -403,15 +402,11 @@ public class SalesOrderMenu implements ModuleMenu {
             return;
         }
 
-        System.out.print("Enter Product Number (or press Enter to skip): ");
-        String productNumber = scanner.nextLine();
-
         SalesOrderItem item = new SalesOrderItem();
         item.setSalesOrderId(orderId);
         item.setProductId(productId);
         item.setUnitPrice(unitPrice);
         item.setQuantity(quantity);
-        item.setProductNumber(productNumber.trim().isEmpty() ? null : productNumber);
 
         salesOrderService.addSalesOrderItem(item);
         System.out.println("Item added successfully! Order totals will be recalculated.");
@@ -457,9 +452,6 @@ public class SalesOrderMenu implements ModuleMenu {
                     System.out.println("Invalid quantity. Keeping old value.");
                 }
             }
-
-            item.setProductNumber(promptForUpdate(scanner, "Product Number", 
-                    item.getProductNumber() != null ? item.getProductNumber() : ""));
 
             salesOrderService.updateSalesOrderItem(item);
             System.out.println("Item updated successfully!");
@@ -559,9 +551,9 @@ public class SalesOrderMenu implements ModuleMenu {
         List<SalesOrderItem> items = salesOrderService.getItemsByOrderId(order.getId());
         
         System.out.println("\n--- Items ---");
-        System.out.printf("%-20s %-15s %-12s %-10s %-15s%n",
-                "Product", "Product Number", "Unit Price", "Quantity", "Total");
-        System.out.println("------------------------------------------------------------------------------");
+        System.out.printf("%-30s %-12s %-10s %-15s%n",
+                "Product", "Unit Price", "Quantity", "Total");
+        System.out.println("-----------------------------------------------------------------------");
 
         BigDecimal subtotal = BigDecimal.ZERO;
         for (SalesOrderItem item : items) {
@@ -569,22 +561,20 @@ public class SalesOrderMenu implements ModuleMenu {
             BigDecimal itemTotal = item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
             subtotal = subtotal.add(itemTotal);
 
-            System.out.printf("%-20s %-15s %-12s %-10d %-15s%n",
-                    productName,
-                    item.getProductNumber() != null ? item.getProductNumber() : "N/A",
-                    item.getUnitPrice(), item.getQuantity(), itemTotal);
+            System.out.printf("%-30s %-12s %-10d %-15s%n",
+                    productName, item.getUnitPrice(), item.getQuantity(), itemTotal);
         }
 
-        System.out.println("------------------------------------------------------------------------------");
-        System.out.printf("%-58s %-15s%n", "Subtotal:", subtotal);
+        System.out.println("-----------------------------------------------------------------------");
+        System.out.printf("%-54s %-15s%n", "Subtotal:", subtotal);
 
         if (order.getTaxId() != null) {
             BigDecimal taxRate = salesOrderService.getTaxRateById(order.getTaxId());
             BigDecimal taxAmount = subtotal.multiply(taxRate).divide(BigDecimal.valueOf(100));
-            System.out.printf("%-58s %-15s (%s%%)%n", "Tax:", taxAmount, taxRate);
-            System.out.printf("%-58s %-15s%n", "Total:", subtotal.add(taxAmount));
+            System.out.printf("%-54s %-15s (%s%%)%n", "Tax:", taxAmount, taxRate);
+            System.out.printf("%-54s %-15s%n", "Total:", subtotal.add(taxAmount));
         } else {
-            System.out.printf("%-58s %-15s%n", "Total:", subtotal);
+            System.out.printf("%-54s %-15s%n", "Total:", subtotal);
         }
     }
 

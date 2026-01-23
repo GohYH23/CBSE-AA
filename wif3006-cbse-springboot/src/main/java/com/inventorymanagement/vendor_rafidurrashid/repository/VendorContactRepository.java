@@ -1,11 +1,11 @@
-package com.inventorymanagement.vendor_Rafid.repository;
+package com.inventorymanagement.vendor_rafidurrashid.repository;
 
 
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
-import com.inventorymanagement.vendor_Rafid.model.VendorContact;
+import com.inventorymanagement.vendor_rafidurrashid.model.VendorContact;
 
 import java.util.List;
 import java.util.Optional;

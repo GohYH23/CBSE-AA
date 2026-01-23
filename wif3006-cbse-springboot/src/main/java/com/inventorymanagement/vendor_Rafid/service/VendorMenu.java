@@ -398,7 +398,7 @@ public class VendorMenu {
         }
         
         try {
-            Vendor result = vendorService.updateVendor(vendor.getId(), updatedVendor);
+            vendorService.updateVendor(vendor.getId(), updatedVendor);
             System.out.println("\n✅ Vendor updated successfully!");
         } catch (Exception e) {
             System.out.println("❌ Error updating vendor: " + e.getMessage());
@@ -436,7 +436,7 @@ public class VendorMenu {
         }
         
         try {
-            Vendor result = vendorService.changeVendorStatus(vendor.getId(), newStatus);
+            vendorService.changeVendorStatus(vendor.getId(), newStatus);
             System.out.println("\n✅ Vendor status changed to: " + newStatus);
         } catch (Exception e) {
             System.out.println("❌ Error changing status: " + e.getMessage());
@@ -588,7 +588,7 @@ public class VendorMenu {
         if (!description.isEmpty()) updatedGroup.setDescription(description);
         
         try {
-            VendorGroup result = vendorService.updateVendorGroup(group.getId(), updatedGroup);
+           vendorService.updateVendorGroup(group.getId(), updatedGroup);
             System.out.println("\n✅ Vendor group updated successfully!");
         } catch (Exception e) {
             System.out.println("❌ Error updating vendor group: " + e.getMessage());
@@ -756,7 +756,7 @@ public class VendorMenu {
         if (!description.isEmpty()) updatedCategory.setDescription(description);
         
         try {
-            VendorCategory result = vendorService.updateVendorCategory(category.getId(), updatedCategory);
+            vendorService.updateVendorCategory(category.getId(), updatedCategory);
             System.out.println("\n✅ Vendor category updated successfully!");
         } catch (Exception e) {
             System.out.println("❌ Error updating vendor category: " + e.getMessage());
@@ -1005,7 +1005,7 @@ public class VendorMenu {
                 updatedContact.setIsPrimary(primaryStr.equalsIgnoreCase("yes"));
             }
             
-            VendorContact result = vendorService.updateVendorContact(contact.getId(), updatedContact);
+            vendorService.updateVendorContact(contact.getId(), updatedContact);
             System.out.println("\n✅ Contact updated successfully!");
             
         } catch (NumberFormatException e) {
